@@ -1,0 +1,21 @@
+{
+  "$schema": "./.dt-app/app.config.schema.json",
+  "environmentUrl": "https://your-environment-id.apps.dynatrace.com/",
+  "app": {
+    "name": "severity-assistant",
+    "version": "0.1.0",
+    "description": "Configure Davis event severity rules based on event name and metadata",
+    "id": "my.severity.assistant",
+    "icon": "./ui/assets/icon.svg",
+    "scopes": [
+      { "name": "storage:buckets:read", "comment": "Grail bucket-level read grant, required in addition to storage:events:read -- see docs/06-app-scaffolding.md" },
+      { "name": "storage:events:read", "comment": "Query dt.davis.events for history, discovery, simulation" },
+      { "name": "settings:objects:read", "comment": "Read the OpenPipeline pipeline object" },
+      { "name": "settings:objects:write", "comment": "Write the compiled pipeline" },
+      { "name": "state:app-states:read", "comment": "Read the role registry and rules (app-wide state, shared across users)" },
+      { "name": "state:app-states:write", "comment": "Write the role registry and rules" },
+      { "name": "state:app-states:delete", "comment": "Delete a removed profile's stored rules" },
+      { "name": "davis:analyzers:execute", "comment": "LogPatternExtractor: suggest threshold patterns from real event descriptions" }
+    ]
+  }
+}
