@@ -106,7 +106,7 @@ npm run deploy -- --environment-url https://<environment-id>.apps.dynatrace.com/
 ### Option B: the release zip
 
 Download `severity-assistant-<version>.zip` from the
-[latest release](https://github.com/fjghumphries/severity-assistant/releases/latest) and check it against
+[Releases page](https://github.com/fjghumphries/severity-assistant/releases) (take the newest) and check it against
 the `.sha256` file next to it. It is built from a tagged commit with the debug tooling removed.
 
 An app bundle is installed through the App Engine **Registry API** (`POST …/registry/v1/apps`, bearer
