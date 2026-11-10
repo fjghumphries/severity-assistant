@@ -114,31 +114,51 @@ export function canonical(value: unknown): string {
 }
 
 /** Leaf-level diff of two JSON values. A missing side is `undefined`. */
-export function diffValues(before: unknown, after: unknown, path = ""): FieldDiff[] {
-  const isObj = (v: unknown) => v !== null && typeof v === "object" && !Array.isArray(v);
+export function diffValues(
+  before: unknown,
+  after: unknown,
+  path = "",
+): FieldDiff[] {
+  const isObj = (v: unknown) =>
+    v !== null && typeof v === "object" && !Array.isArray(v);
   if (isObj(before) || isObj(after)) {
     const b = (isObj(before) ? before : {}) as Record<string, unknown>;
     const a = (isObj(after) ? after : {}) as Record<string, unknown>;
-    if ((before !== undefined && !isObj(before)) || (after !== undefined && !isObj(after))) {
+    if (
+      (before !== undefined && !isObj(before)) ||
+      (after !== undefined && !isObj(after))
+    ) {
       return [{ path, before, after }];
     }
     const keys = [...new Set([...Object.keys(b), ...Object.keys(a)])].sort();
-    return keys.flatMap((k) => diffValues(b[k], a[k], path ? `${path}.${k}` : k));
+    return keys.flatMap((k) =>
+      diffValues(b[k], a[k], path ? `${path}.${k}` : k),
+    );
   }
-  return canonical(before) === canonical(after) ? [] : [{ path, before, after }];
+  return canonical(before) === canonical(after)
+    ? []
+    : [{ path, before, after }];
 }
 
-function stageProcessors(value: LivePipelineValue | PipelineValue, stage: string): LiveProcessor[] {
-  const s = (value as Record<string, unknown>)[stage] as { processors?: LiveProcessor[] } | undefined;
+function stageProcessors(
+  value: LivePipelineValue | PipelineValue,
+  stage: string,
+): LiveProcessor[] {
+  const s = (value as Record<string, unknown>)[stage] as
+    { processors?: LiveProcessor[] } | undefined;
   return s?.processors ?? [];
 }
 
-export function buildDeployPlan(compiled: PipelineValue, live: LivePipeline | null): DeployPlan {
+export function buildDeployPlan(
+  compiled: PipelineValue,
+  live: LivePipeline | null,
+): DeployPlan {
   // Processors the compiler emits, per stage (processing, and securityContext when managed).
   // Owned processors found live in a stage that is no longer emitted are stale and removable;
   // foreign ones in any stage are kept.
   const ownedByStage: Record<string, LiveProcessor[]> = {};
-  for (const stage of PIPELINE_STAGES) ownedByStage[stage] = stageProcessors(compiled, stage);
+  for (const stage of PIPELINE_STAGES)
+    ownedByStage[stage] = stageProcessors(compiled, stage);
   const ownedNew = PIPELINE_STAGES.flatMap((stage) => ownedByStage[stage]);
   const liveOwned = new Map<string, LiveProcessor>();
   const foreign: { stage: string; id: string }[] = [];
@@ -165,14 +185,19 @@ export function buildDeployPlan(compiled: PipelineValue, live: LivePipeline | nu
 
   // Build the object to write. Start from live (keeps groupRole, metadataList, etc.), replace
   // the owned processors, keep foreign ones after them.
-  const base: LivePipelineValue = live ? { ...live.value } : { ...(compiled as unknown as LivePipelineValue) };
+  const base: LivePipelineValue = live
+    ? { ...live.value }
+    : { ...(compiled as unknown as LivePipelineValue) };
   for (const stage of PIPELINE_STAGES) {
-    const keptForeign = live ? stageProcessors(live.value, stage).filter((p) => !isOwned(p.id)) : [];
+    const keptForeign = live
+      ? stageProcessors(live.value, stage).filter((p) => !isOwned(p.id))
+      : [];
     const owned = ownedByStage[stage];
     const liveHasStage = live !== null && live.value[stage] !== undefined;
     // Leave a stage untouched (absent) unless there is something to say about it: otherwise a
     // pipeline created before a stage was managed would show a phantom pending change forever.
-    if (!CORE_STAGES.has(stage) && !liveHasStage && owned.length === 0) continue;
+    if (!CORE_STAGES.has(stage) && !liveHasStage && owned.length === 0)
+      continue;
     base[stage] = { processors: [...owned, ...keptForeign] };
   }
   if (!live) {
@@ -185,23 +210,42 @@ export function buildDeployPlan(compiled: PipelineValue, live: LivePipeline | nu
   const processorChanges: ProcessorChange[] = [];
   for (const p of ownedNew) {
     const existing = liveOwned.get(p.id);
-    if (!existing) processorChanges.push({ id: p.id, kind: "added", fields: diffValues(undefined, p) });
+    if (!existing)
+      processorChanges.push({
+        id: p.id,
+        kind: "added",
+        fields: diffValues(undefined, p),
+      });
     else if (changed.includes(p.id)) {
-      processorChanges.push({ id: p.id, kind: "changed", fields: diffValues(existing, p) });
+      processorChanges.push({
+        id: p.id,
+        kind: "changed",
+        fields: diffValues(existing, p),
+      });
     }
   }
   for (const id of removed) {
-    processorChanges.push({ id, kind: "removed", fields: diffValues(liveOwned.get(id), undefined) });
+    processorChanges.push({
+      id,
+      kind: "removed",
+      fields: diffValues(liveOwned.get(id), undefined),
+    });
   }
 
   const stageKeys = new Set<string>(PIPELINE_STAGES);
   const otherChanges = live
     ? diffValues(
-        Object.fromEntries(Object.entries(live.value).filter(([k]) => !stageKeys.has(k))),
-        Object.fromEntries(Object.entries(base).filter(([k]) => !stageKeys.has(k))),
+        Object.fromEntries(
+          Object.entries(live.value).filter(([k]) => !stageKeys.has(k)),
+        ),
+        Object.fromEntries(
+          Object.entries(base).filter(([k]) => !stageKeys.has(k)),
+        ),
       )
     : [];
-  const liveOrder = live ? stageProcessors(live.value, "processing").map((p) => p.id) : [];
+  const liveOrder = live
+    ? stageProcessors(live.value, "processing").map((p) => p.id)
+    : [];
   const newOrder = stageProcessors(base, "processing").map((p) => p.id);
   const orderChanged =
     live !== null &&
@@ -232,8 +276,15 @@ export function buildDeployPlan(compiled: PipelineValue, live: LivePipeline | nu
 }
 
 /** Type guard used when reading the settings API: confirms a returned object really is ours. */
-export function isOurPipeline(value: unknown, customId: string): value is LivePipelineValue {
-  return typeof value === "object" && value !== null && (value as { customId?: unknown }).customId === customId;
+export function isOurPipeline(
+  value: unknown,
+  customId: string,
+): value is LivePipelineValue {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { customId?: unknown }).customId === customId
+  );
 }
 
 export type { Processor };

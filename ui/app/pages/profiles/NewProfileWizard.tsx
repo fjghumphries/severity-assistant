@@ -216,7 +216,7 @@ export const NewProfileWizard = ({ registry, onCreate, onClose }: Props) => {
 
         {step === 2 && (
           <Flex flexDirection="column" gap={16}>
-            <Paragraph>When no rule matches an event</Paragraph>
+            <Paragraph>Events with no rule</Paragraph>
             <Flex gap={12} flexWrap="wrap" alignItems="flex-end">
               <Select value={fallback} onChange={(v) => v && setFallback(v)}>
                 <Select.Content>

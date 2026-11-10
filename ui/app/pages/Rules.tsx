@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 
 import { Flex } from "@dynatrace/strato-components/layouts";
 import {
@@ -20,6 +20,7 @@ import { useAnomalyDetectors } from "../lib/queries/useAnomalyDetectors";
 import { simulate } from "../lib/simulate/simulate";
 import { isException, Rule } from "../lib/types/rule";
 import { RulesTree } from "./rules/RulesTree";
+import { ExplainModal } from "./rules/ExplainModal";
 import { useDetectorNameLookup } from "./rules/shared";
 
 /**
@@ -47,6 +48,7 @@ export const Rules = () => {
     isLoading: registryLoading,
     isError: registryError,
   } = useRegistry();
+  const [explaining, setExplaining] = useState(false);
   const loadedOnce = useRef(false);
   if (!rulesLoading && !registryLoading) loadedOnce.current = true;
   const { rows: discoveryRows } = useDiscovery("2h");
@@ -181,6 +183,22 @@ export const Rules = () => {
           Coverage of recent events cannot be estimated: detector and threshold
           rules cannot be evaluated from event data.
         </Text>
+      )}
+
+      <Flex>
+        <Button variant="emphasized" onClick={() => setExplaining(true)}>
+          Explain an event...
+        </Button>
+      </Flex>
+      {explaining && (
+        <ExplainModal
+          rules={rules}
+          registry={registry}
+          eventCatalogue={eventCatalogue}
+          discoveryRows={discoveryRows}
+          detectors={detectors}
+          onClose={() => setExplaining(false)}
+        />
       )}
 
       <RulesTree

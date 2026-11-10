@@ -5,6 +5,8 @@ import { Header } from "./components/Header";
 import { SideNav } from "./components/SideNav";
 import { TopBar } from "./components/TopBar";
 import { DeployBanner } from "./components/DeployBanner";
+import { SetupBanner } from "./components/SetupBanner";
+import { Setup } from "./pages/Setup";
 import { FlowStatusProvider } from "./lib/config/FlowStatus";
 import {
   ProfileProvider,
@@ -25,7 +27,7 @@ const PipelineForProfile = () => <Pipeline key={useProfileId()} />;
 
 const WELCOMED_KEY = "severity-assistant.welcomed";
 
-/** The first visit in a browser lands on Getting started; after that, straight to the rules. */
+/** The first visit in a browser lands on the setup; after that, straight to the rules. */
 const Landing = () => {
   let first = false;
   try {
@@ -34,7 +36,7 @@ const Landing = () => {
   } catch {
     // Storage unavailable: behave like a returning visitor.
   }
-  return <Navigate to={first ? "/getting-started" : "/rules"} replace />;
+  return <Navigate to={first ? "/setup" : "/rules"} replace />;
 };
 
 const GATE_KEY = "severity-assistant.profile-gate";
@@ -77,6 +79,7 @@ export const App = () => {
             <div style={{ maxWidth: 1760, margin: "0 auto", width: "100%" }}>
               <ProfileGate />
               <TopBar />
+              <SetupBanner />
               <DeployBanner />
               <Routes>
                 <Route path="/" element={<Landing />} />
@@ -93,10 +96,11 @@ export const App = () => {
                 />
                 <Route path="/pipeline" element={<PipelineForProfile />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/getting-started" element={<GettingStarted />} />
+                <Route path="/setup" element={<Setup />} />
+                <Route path="/help" element={<GettingStarted />} />
                 <Route
-                  path="/help"
-                  element={<Navigate to="/getting-started" replace />}
+                  path="/getting-started"
+                  element={<Navigate to="/help" replace />}
                 />
               </Routes>
             </div>

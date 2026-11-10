@@ -265,21 +265,23 @@ const InitialSetup = () => {
     <Surface padding={24}>
       <Flex flexDirection="column" gap={12}>
         <Heading level={3}>
-          {done ? "Initial setup: done" : "Initial setup: map your labels"}
+          {done ? "Setup: done" : "Setup: not finished"}
         </Heading>
         <Prose>
           {done
             ? `${labels.length} labels are saved (${labels
                 .map((l) => l.label)
-                .join(", ")}). Rules can match on them.`
-            : "Do this once before writing rules. A label is a business attribute such as a team, an application or an environment; you say which tenant field holds its value. Open Settings, check the suggested fields, and click Save. Until then the rule editor has no labels to choose from."}
+                .join(
+                  ", ",
+                )}). You can run the setup again at any time; it shows your current values and changes nothing until you save.`
+            : "A one-minute setup: say which tenant field holds each label and which events the app takes. You can skip it and come back; the rest of the app tells you what is missing."}
         </Prose>
         <Flex>
           <Button
             variant={done ? "emphasized" : "accent"}
-            onClick={() => navigate("/settings")}
+            onClick={() => navigate("/setup")}
           >
-            {done ? "Review labels" : "Set up labels"}
+            {done ? "Run setup again" : "Finish setup"}
           </Button>
         </Flex>
       </Flex>
@@ -293,7 +295,7 @@ export const GettingStarted = () => {
   return (
     <Flex flexDirection="column" padding={32} gap={40}>
       <Flex flexDirection="column" gap={12}>
-        <Heading level={2}>Getting started</Heading>
+        <Heading level={2}>Help</Heading>
         <Prose>
           Severity Assistant decides how severe each Davis event is from rules
           you write in business terms, instead of pipeline code, and manages the
@@ -331,26 +333,37 @@ export const GettingStarted = () => {
         </Flex>
       </Flex>
 
-      <Figure
-        title="The journey of an event"
-        caption="An event is raised, a route decides which pipeline sees it, the pipeline applies your rules, and the event is stored with a severity. The problem then takes the most severe of its events, and a workflow can act on that."
-      >
-        <JourneyDiagram />
-      </Figure>
+      <Accordion>
+        <Accordion.Section id="how-it-works">
+          <Accordion.SectionLabel>
+            How it works, in three diagrams
+          </Accordion.SectionLabel>
+          <Accordion.SectionContent>
+            <Flex flexDirection="column" gap={32}>
+              <Figure
+                title="The journey of an event"
+                caption="An event is raised, a route decides which pipeline sees it, the pipeline applies your rules, and the event is stored with a severity. The problem then takes the most severe of its events, and a workflow can act on that."
+              >
+                <JourneyDiagram />
+              </Figure>
 
-      <Figure
-        title="What your rules become"
-        caption="Inside the pipeline there are only three ideas. A default gives an event or detector one severity for everyone. Exceptions override it for particular labels, in the order you set. The last step writes the result."
-      >
-        <InsidePipelineDiagram />
-      </Figure>
+              <Figure
+                title="What your rules become"
+                caption="Inside the pipeline there are only three ideas. A default gives an event or detector one severity for everyone. Exceptions override it for particular labels, in the order you set. The last step writes the result."
+              >
+                <InsidePipelineDiagram />
+              </Figure>
 
-      <Figure
-        title="One team, its own rules"
-        caption="Each profile has its own route, matched in order, so a team can have its own severities without touching anyone else. An event goes to the first route that matches it; the rest is left as it was."
-      >
-        <ProfilesDiagram />
-      </Figure>
+              <Figure
+                title="One team, its own rules"
+                caption="Each profile has its own route, matched in order, so a team can have its own severities without touching anyone else. An event goes to the first route that matches it; the rest is left as it was."
+              >
+                <ProfilesDiagram />
+              </Figure>
+            </Flex>
+          </Accordion.SectionContent>
+        </Accordion.Section>
+      </Accordion>
 
       <Flex flexDirection="column" gap={16}>
         <Heading level={3}>Four steps</Heading>
@@ -383,29 +396,36 @@ export const GettingStarted = () => {
         </Flex>
       </Flex>
 
-      <Flex flexDirection="column" gap={16}>
-        <Heading level={3}>Limits</Heading>
-        <Prose>
-          <Paragraph>
-            Worth reading before you build a large rule set. Defaults are
-            effectively unlimited because they share one lookup table;
-            exceptions cost one processor each, so they are the number to watch.
-          </Paragraph>
-        </Prose>
-        <Flex flexDirection="column" gap={8}>
-          {LIMITS.map((row) => (
-            <Surface key={row.what} padding={16}>
-              <Flex flexDirection="column" gap={4}>
-                <Flex gap={12} alignItems="baseline" flexWrap="wrap">
-                  <Strong>{row.what}</Strong>
-                  <Text>{row.limit}</Text>
-                </Flex>
-                <Text style={{ maxWidth: 760 }}>{row.note}</Text>
+      <Accordion>
+        <Accordion.Section id="limits">
+          <Accordion.SectionLabel>Reference: limits</Accordion.SectionLabel>
+          <Accordion.SectionContent>
+            <Flex flexDirection="column" gap={16}>
+              <Prose>
+                <Paragraph>
+                  Worth reading before you build a large rule set. Defaults are
+                  effectively unlimited because they share one lookup table;
+                  exceptions cost one processor each, so they are the number to
+                  watch.
+                </Paragraph>
+              </Prose>
+              <Flex flexDirection="column" gap={8}>
+                {LIMITS.map((row) => (
+                  <Surface key={row.what} padding={16}>
+                    <Flex flexDirection="column" gap={4}>
+                      <Flex gap={12} alignItems="baseline" flexWrap="wrap">
+                        <Strong>{row.what}</Strong>
+                        <Text>{row.limit}</Text>
+                      </Flex>
+                      <Text style={{ maxWidth: 760 }}>{row.note}</Text>
+                    </Flex>
+                  </Surface>
+                ))}
               </Flex>
-            </Surface>
-          ))}
-        </Flex>
-      </Flex>
+            </Flex>
+          </Accordion.SectionContent>
+        </Accordion.Section>
+      </Accordion>
 
       <Flex flexDirection="column" gap={16}>
         <Heading level={3}>Questions</Heading>

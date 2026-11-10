@@ -61,6 +61,9 @@ export interface Rule {
   updated_by: string;
 }
 
+/** A rule stores its conditions in four fixed slots (md1..md4), so four is the hard ceiling. */
+export const MAX_CONDITION_SLOTS = 4;
+
 const CONDITION_SLOTS: ConditionSlot[] = [1, 2, 3, 4];
 
 export function getConditions(rule: Rule): RuleCondition[] {

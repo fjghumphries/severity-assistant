@@ -1,4 +1,8 @@
-import { emptyRegistry, RoleRegistry } from "../types/registry";
+import {
+  derivedMaxConditions,
+  emptyRegistry,
+  RoleRegistry,
+} from "../types/registry";
 import { newProfile } from "./profiles";
 import { validateRegistry } from "./validateRegistry";
 
@@ -63,5 +67,42 @@ describe("validateRegistry: matcher and profiles", () => {
     expect(m).toMatch(
       /Profile "Team A": "not a path" is not a plain field path/,
     );
+  });
+});
+
+describe("max conditions", () => {
+  it("rejects more than the four condition slots a rule can store", () => {
+    const r = { ...emptyRegistry(), maxConditionsPerRule: 5 };
+    expect(
+      validateRegistry(r).some((i) => i.field === "maxConditionsPerRule"),
+    ).toBe(true);
+    expect(
+      validateRegistry({ ...r, maxConditionsPerRule: 4 }).some(
+        (i) => i.field === "maxConditionsPerRule",
+      ),
+    ).toBe(false);
+  });
+
+  it("is derived from the usable labels, between 1 and 4", () => {
+    const role = (n: number, over = {}) => ({
+      role: `r${n}`,
+      label: `L${n}`,
+      field: "f",
+      cardinality: "single" as const,
+      enabled: true,
+      ...over,
+    });
+    expect(derivedMaxConditions([])).toBe(1);
+    expect(derivedMaxConditions([role(1), role(2)])).toBe(2);
+    expect(derivedMaxConditions([1, 2, 3, 4, 5, 6].map((n) => role(n)))).toBe(
+      4,
+    );
+    expect(
+      derivedMaxConditions([
+        role(1),
+        role(2, { enabled: false }),
+        role(3, { cardinality: "multi" }),
+      ]),
+    ).toBe(1);
   });
 });

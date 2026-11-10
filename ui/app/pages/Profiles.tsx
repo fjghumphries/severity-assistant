@@ -453,10 +453,14 @@ export const Profiles = () => {
               matcher decides which events it takes.
               <br />
               <br />
-              <strong>Default</strong> takes every Davis event, so on its own it
-              behaves like a tenant-wide setting. Add a profile when one team
-              wants its own severities while everyone else keeps the current
-              behaviour: give it a narrow matcher such as{" "}
+              <strong>Default</strong> is the profile every install starts with,
+              and where setup puts your labels and first rules. A new install
+              starts it with a narrow matcher that takes only events opted in
+              with sa.optin = true, so nothing is touched until you choose;
+              taking every Davis event is possible but asks you to confirm,
+              because other routes then stop receiving events. Add a profile
+              when one team wants its own severities while everyone else keeps
+              the current behaviour: give it a narrow matcher such as{" "}
               <code>matchesValue(primary_tags.bu, &quot;bu1&quot;)</code> and
               only those events go through it.
               <br />

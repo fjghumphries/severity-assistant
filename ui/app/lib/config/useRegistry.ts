@@ -1,6 +1,11 @@
 import { useAppState, useSetAppState } from "@dynatrace-sdk/react-hooks";
 import { isNotFound, stateClient } from "@dynatrace-sdk/client-state";
-import { emptyRegistry, Profile, RoleRegistry } from "../types/registry";
+import {
+  derivedMaxConditions,
+  emptyRegistry,
+  Profile,
+  RoleRegistry,
+} from "../types/registry";
 import { notifyStateChanged, useRefetchOnStateChange } from "./stateEvents";
 
 /**
@@ -87,6 +92,7 @@ export function useSaveRegistry() {
     const stored = await readStoredRegistry();
     const next: RoleRegistry = {
       ...registry,
+      maxConditionsPerRule: derivedMaxConditions(registry.roles),
       profiles: stored?.profiles ?? registry.profiles,
     };
     await execute({

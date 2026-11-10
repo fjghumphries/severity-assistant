@@ -29,6 +29,7 @@ import {
   DetectorRow,
   dimensionsWithLabels,
   Dimension,
+  effectiveSeverity,
   eventNames,
   FILTER_DIMENSIONS,
   filterOptions,
@@ -82,7 +83,7 @@ const detectorColumns: DataTableColumnDef<DetectorRow>[] = [
   { id: "unmatched", header: "No rule matched", accessor: "unmatched" },
 ];
 
-const SEVERITY_SERIES = (r: MonitorRow) => severityText(r["event.severity"]);
+const SEVERITY_SERIES = (r: MonitorRow) => severityText(effectiveSeverity(r));
 const CLASS_SERIES = (r: MonitorRow) =>
   ({
     modified: "Modified by the app",
@@ -296,9 +297,12 @@ export const Results = () => {
                     No event in this window went through this profile&apos;s
                     pipeline.
                   </Strong>{" "}
-                  Its route may be off, or its matcher may not match these
-                  events. Switch to <Strong>All pipelines</Strong> to see where
-                  they went.
+                  The tenant had{" "}
+                  {everyRow.reduce((n, r) => n + r.c, 0).toLocaleString()} Davis
+                  events in this window, none of them through this profile. Its
+                  route may be off, or its matcher may not match these events (a
+                  new profile&apos;s matcher starts narrow). Switch to{" "}
+                  <Strong>All pipelines</Strong> to see where they went.
                 </Text>
               </Surface>
             )}
@@ -373,7 +377,9 @@ export const Results = () => {
               onClick={() => setOpen("processed")}
             />
             <StatTile
-              label="Modified"
+              label={
+                t.observed > 0 ? "Would be modified (observe mode)" : "Modified"
+              }
               value={t.modified}
               tone={t.modified > 0 ? "warn" : "neutral"}
               onClick={() => setOpen("modified")}
@@ -392,6 +398,15 @@ export const Results = () => {
               />
             )}
           </Flex>
+
+          {t.observed > 0 && (
+            <Text>
+              {t.observed} events went through a pipeline in observe mode: their
+              severity was recorded in sa.proposed_severity but not changed.
+              Charts and splits below show the severity they would have. Switch
+              the team to live mode and publish to apply it.
+            </Text>
+          )}
 
           <Flex gap={16} flexWrap="wrap">
             <Surface padding={24} style={{ flex: 1, minWidth: 420 }}>

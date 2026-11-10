@@ -4,6 +4,8 @@ import { Flex } from "@dynatrace/strato-components/layouts";
 import { Paragraph, Text } from "@dynatrace/strato-components/typography";
 import { Select, TextInput } from "@dynatrace/strato-components/forms";
 
+import { ObserveWarning } from "../../components/ObserveWarning";
+import { MatcherField } from "../../components/MatcherField";
 import type { Profile } from "../../lib/types/registry";
 
 interface Props {
@@ -14,21 +16,34 @@ interface Props {
 /** The per-profile settings: matcher, fallback severity and security context. */
 export const ProfileEditor = ({ profile: p, onChange }: Props) => (
   <Flex gap={24} flexWrap="wrap">
-    <Flex flexDirection="column" gap={2} style={{ minWidth: 320, flex: 1 }}>
-      <Paragraph>Route matcher (required)</Paragraph>
-      <TextInput
-        value={p.routeMatcher}
-        placeholder='matchesValue(primary_tags.bu, "bu1")'
-        onChange={(value) => onChange({ routeMatcher: value })}
-      />
+    <MatcherField
+      value={p.routeMatcher}
+      onChange={(value) => onChange({ routeMatcher: value })}
+    />
+
+    <Flex flexDirection="column" gap={2} style={{ minWidth: 320 }}>
+      <Paragraph>What it does to events</Paragraph>
+      <Select
+        value={p.writeMode ?? "live"}
+        onChange={(value) => value && onChange({ writeMode: value })}
+      >
+        <Select.Content>
+          <Select.Option value="live">Live: set event.severity</Select.Option>
+          <Select.Option value="observe">
+            Observe: only record what it would set
+          </Select.Option>
+        </Select.Content>
+      </Select>
       <Text>
-        Which Davis events this profile takes. Allowed functions: matchesValue,
-        matchesPhrase, isNull, isNotNull.
+        Observe writes sa.proposed_severity and leaves event.severity alone, so
+        you can compare on the Results screen before anything real changes.
+        Publish again after switching.
       </Text>
+      {p.writeMode === "observe" && <ObserveWarning />}
     </Flex>
 
     <Flex flexDirection="column" gap={2} style={{ minWidth: 220 }}>
-      <Paragraph>When no rule matches</Paragraph>
+      <Paragraph>Events with no rule</Paragraph>
       <Select
         value={p.defaultSeverity.mode}
         onChange={(value) =>

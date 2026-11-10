@@ -1,6 +1,6 @@
 {
   "name": "severity-assistant",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A starting project with routing, fetching data, and charting",
   "scripts": {
     "build": "dt-app build",

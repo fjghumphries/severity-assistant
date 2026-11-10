@@ -125,7 +125,9 @@ export function compile(
   }
 
   // Phase 4 -- the combiner. Always present, even for an empty rule set (an inert pipeline).
-  processors.push(buildFinalCombinerProcessor(registry.defaultSeverity));
+  processors.push(
+    buildFinalCombinerProcessor(registry.defaultSeverity, registry.writeMode),
+  );
 
   const syntaxErrors = checkProcessorSyntax(processors);
   if (syntaxErrors.length > 0) {

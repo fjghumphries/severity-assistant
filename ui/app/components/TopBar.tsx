@@ -81,6 +81,13 @@ export const TopBar = () => {
         </Text>
       )}
 
+      {matcher === "true" && (
+        <Chip color="warning" size="condensed">
+          Takes over other routes: narrow it in{" "}
+          {profileId === "default" ? "Settings" : "Profiles"}
+        </Chip>
+      )}
+
       {deploy && (
         <Chip color={deploy.tone} size="condensed">
           {deploy.label}

@@ -304,43 +304,53 @@ export const Pipeline = () => {
       )}
 
       {/* Used rarely, so out of the way: deploying and routing are the act, this is the safety net. */}
-      <Accordion>
-        <Accordion.Section id="advanced">
-          <Accordion.SectionLabel>
-            Advanced: backup and restore, technical details
-          </Accordion.SectionLabel>
-          <Accordion.SectionContent>
-            <Flex flexDirection="column" gap={16}>
-              <Flex flexDirection="column" gap={8}>
-                <Text>
-                  Backups are files saved on your computer. The pipeline and the
-                  routing list are backed up and restored separately.
-                </Text>
-                <Flex gap={16} flexWrap="wrap">
-                  <RestoreSection
-                    kind="pipeline"
-                    customId={registry.pipelineCustomId}
-                    live={liveState.live}
-                    onRestored={() => void loadLive()}
-                  />
-                  <RestoreSection
-                    kind="routing"
-                    customId={registry.pipelineCustomId}
-                    live={liveState.live}
-                    onRestored={() => void loadLive()}
-                  />
+      <Surface padding={24}>
+        <Flex flexDirection="column" gap={12}>
+          <Heading level={3}>Backup, restore and technical details</Heading>
+          <Text>
+            The safety net for publishing: save a copy of the pipeline or the
+            routing list to your computer, restore one, or read exactly what the
+            app generated.
+          </Text>
+          <Accordion>
+            <Accordion.Section id="advanced">
+              <Accordion.SectionLabel>
+                Show backup, restore and generated code
+              </Accordion.SectionLabel>
+              <Accordion.SectionContent>
+                <Flex flexDirection="column" gap={16}>
+                  <Flex flexDirection="column" gap={8}>
+                    <Text>
+                      Backups are files saved on your computer. The pipeline and
+                      the routing list are backed up and restored separately.
+                    </Text>
+                    <Flex gap={16} flexWrap="wrap">
+                      <RestoreSection
+                        kind="pipeline"
+                        customId={registry.pipelineCustomId}
+                        live={liveState.live}
+                        onRestored={() => void loadLive()}
+                      />
+                      <RestoreSection
+                        kind="routing"
+                        customId={registry.pipelineCustomId}
+                        live={liveState.live}
+                        onRestored={() => void loadLive()}
+                      />
+                    </Flex>
+                  </Flex>
+                  {plan && <PlanDetailsContent plan={plan} />}
+                  <Text>
+                    To take this profile&apos;s pipeline and route out of the
+                    tenant, or to reset the app, go to Settings &gt; Remove and
+                    reset.
+                  </Text>
                 </Flex>
-              </Flex>
-              {plan && <PlanDetailsContent plan={plan} />}
-              <Text>
-                To take this profile&apos;s pipeline and route out of the
-                tenant, or to reset the app, go to Settings &gt; Remove and
-                reset.
-              </Text>
-            </Flex>
-          </Accordion.SectionContent>
-        </Accordion.Section>
-      </Accordion>
+              </Accordion.SectionContent>
+            </Accordion.Section>
+          </Accordion>
+        </Flex>
+      </Surface>
 
       {shownMessage && !(compiled.ok && plan) && (
         <Flex alignItems="center" gap={8}>

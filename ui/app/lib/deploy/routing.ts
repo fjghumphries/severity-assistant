@@ -67,7 +67,9 @@ export function planRoute(
       `Our catch-all route will take every Davis event; ${shadowing.length} enabled route(s) below it will stop receiving anything.`,
     );
   }
-  const otherManaged = others.filter((e) => e.enabled && e.description.startsWith(MANAGED_ROUTE_PREFIX));
+  const otherManaged = others.filter(
+    (e) => e.enabled && e.description.startsWith(MANAGED_ROUTE_PREFIX),
+  );
   if (action === "enable" && otherManaged.length > 0) {
     warnings.push(
       `${otherManaged.length} other Severity Assistant route(s) are enabled below this one. Routing is first-match-wins, so they only receive events this matcher does not match.`,
@@ -77,7 +79,9 @@ export function planRoute(
     warnings.push("Route matcher is empty.");
   }
   if (ours && ours.matcher !== matcher) {
-    warnings.push(`Existing app route matcher "${ours.matcher}" will be replaced by "${matcher}".`);
+    warnings.push(
+      `Existing app route matcher "${ours.matcher}" will be replaced by "${matcher}".`,
+    );
   }
 
   return {
@@ -104,12 +108,17 @@ export function planRemoveRoute(
 export function describeRouteState(
   current: RoutingEntry[],
   pipelineObjectId: string,
-): { state: "absent" | "disabled" | "shadowed" | "live"; shadowedBy: RoutingEntry[] } {
+): {
+  state: "absent" | "disabled" | "shadowed" | "live";
+  shadowedBy: RoutingEntry[];
+} {
   const idx = current.findIndex((e) => e.pipelineId === pipelineObjectId);
   if (idx === -1) return { state: "absent", shadowedBy: [] };
   const ours = current[idx];
   if (!ours.enabled) return { state: "disabled", shadowedBy: [] };
-  const above = current.slice(0, idx).filter((e) => e.enabled && isCatchAll(e.matcher));
+  const above = current
+    .slice(0, idx)
+    .filter((e) => e.enabled && isCatchAll(e.matcher));
   if (above.length > 0) return { state: "shadowed", shadowedBy: above };
   return { state: "live", shadowedBy: [] };
 }

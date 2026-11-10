@@ -3,7 +3,11 @@
  * (updated for D19/D20)". Each function is pure and side-effect free.
  */
 
-import { DefaultSeverity, SecurityContextSetting } from "../types/registry";
+import {
+  DefaultSeverity,
+  SecurityContextSetting,
+  WriteMode,
+} from "../types/registry";
 import { RoleRegistry } from "../types/registry";
 import { Rule } from "../types/rule";
 import {
@@ -239,7 +243,12 @@ export function buildExceptionProcessor(
 
 export function buildFinalCombinerProcessor(
   defaultSeverity: DefaultSeverity,
+  writeMode: WriteMode = "live",
 ): Processor {
+  // Observe mode writes the severity the event WOULD get to a marker field and leaves
+  // event.severity alone, so nothing downstream changes while the effect is compared.
+  const target =
+    writeMode === "observe" ? "sa.proposed_severity" : "event.severity";
   // Markers make the app's effect measurable afterwards (Results screen): which tier decided
   // ("exception" / "default" / "unmatched") and the severity the event arrived with. The original
   // must be captured before event.severity is overwritten below.
@@ -251,13 +260,11 @@ export function buildFinalCombinerProcessor(
 
   if (defaultSeverity.mode === "leave") {
     lines.push(
-      "fieldsAdd event.severity = if(isNull(dt.temp.sev_final), event.severity, else: dt.temp.sev_final)",
+      `fieldsAdd ${target} = if(isNull(dt.temp.sev_final), event.severity, else: dt.temp.sev_final)`,
     );
   } else {
     const value = dqlStringLiteral(defaultSeverity.value ?? "");
-    lines.push(
-      `fieldsAdd event.severity = coalesce(dt.temp.sev_final, ${value})`,
-    );
+    lines.push(`fieldsAdd ${target} = coalesce(dt.temp.sev_final, ${value})`);
     if (defaultSeverity.mode === "flag") {
       lines.push("fieldsAdd sa.unmatched = isNull(dt.temp.sev_final)");
     }
@@ -266,7 +273,9 @@ export function buildFinalCombinerProcessor(
   return dqlProcessor(
     "sevassist_apply_severity",
     withPrefix(
-      `write event.severity from the last matching exception, otherwise the default; events matching neither ${describeFallback(defaultSeverity)}`,
+      writeMode === "observe"
+        ? `OBSERVE ONLY: record in sa.proposed_severity what event.severity would be (last matching exception, otherwise the default), without changing event.severity; events matching neither ${describeFallback(defaultSeverity)}`
+        : `write event.severity from the last matching exception, otherwise the default; events matching neither ${describeFallback(defaultSeverity)}`,
     ),
     "true",
     lines.join("\n| "),

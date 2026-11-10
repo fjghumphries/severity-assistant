@@ -13,6 +13,7 @@ import { CriticalIcon } from "@dynatrace/strato-icons";
 
 import {
   describeChangeLine,
+  describeChangeLines,
   type ChangeSummary,
 } from "../../lib/deploy/describe";
 import type { DeployPlan } from "../../lib/deploy/plan";
@@ -30,6 +31,30 @@ const Row = ({
     <Text>{children}</Text>
   </Flex>
 );
+
+const MAX_LINES = 10;
+
+/** One change per line, collapsed past ten so a large publish stays readable. */
+const ChangeList = ({ summary }: { summary: ChangeSummary }) => {
+  const [all, setAll] = React.useState(false);
+  const lines = describeChangeLines(summary);
+  if (lines.length === 0) return <Text>{describeChangeLine(summary)}</Text>;
+  const shown = all ? lines : lines.slice(0, MAX_LINES);
+  return (
+    <Flex flexDirection="column" gap={2} style={{ paddingLeft: 166 }}>
+      {shown.map((l, i) => (
+        <Text key={i}>&bull; {l}</Text>
+      ))}
+      {lines.length > MAX_LINES && (
+        <Flex>
+          <Button variant="emphasized" onClick={() => setAll((v) => !v)}>
+            {all ? "Show fewer" : `Show all ${lines.length} changes`}
+          </Button>
+        </Flex>
+      )}
+    </Flex>
+  );
+};
 
 const fallbackText = (registry: RoleRegistry): string => {
   const { mode, value } = registry.defaultSeverity;
@@ -68,7 +93,7 @@ export const DeployPanel = (p: Props) => {
   return (
     <Surface padding={24}>
       <Flex flexDirection="column" gap={12}>
-        <Heading level={3}>Deploy</Heading>
+        <Heading level={3}>Publish changes</Heading>
         {stampsEverything && (
           <Flex alignItems="center" gap={8}>
             <CriticalIcon />
@@ -93,8 +118,9 @@ export const DeployPanel = (p: Props) => {
             <Row label="On confirm">
               {creating
                 ? `Creates ${p.registry.pipelineCustomId} with ${p.processorCount} processors`
-                : `Updates ${p.registry.pipelineCustomId}: ${describeChangeLine(p.summary)} (${plan.added.length} processors added, ${plan.changed.length} changed, ${plan.removed.length} removed)`}
+                : `Updates ${p.registry.pipelineCustomId} (${plan.added.length} processors added, ${plan.changed.length} changed, ${plan.removed.length} removed)`}
             </Row>
+            {!creating && <ChangeList summary={p.summary} />}
             <Row label="Unmatched events">{`Events matching no rule ${fallbackText(p.registry)}`}</Row>
             <Row label="Other processors">
               {plan.foreign.length === 0
@@ -130,7 +156,7 @@ export const DeployPanel = (p: Props) => {
               disabled={plan.noChange || p.deploying}
               onClick={p.onStart}
             >
-              {creating ? "Create pipeline..." : "Deploy changes..."}
+              {creating ? "Create pipeline..." : "Publish changes..."}
             </Button>
           ) : (
             <>

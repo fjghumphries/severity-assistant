@@ -53,27 +53,46 @@ export type EventClass = "modified" | "unchanged" | "unprocessed";
 export function classify(row: MonitorRow): EventClass {
   if (row["sa.source"] === null || row["sa.source"] === undefined)
     return "unprocessed";
-  return (row["sa.original_severity"] ?? null) !==
-    (row["event.severity"] ?? null)
+  // In observe mode the pipeline records what it would set and leaves event.severity alone, so
+  // "modified" then means "would be modified".
+  return (row["sa.original_severity"] ?? null) !== effectiveSeverity(row)
     ? "modified"
     : "unchanged";
 }
+
+/** The severity the app decided: the observed proposal when there is one, else what is stored. */
+export const effectiveSeverity = (row: MonitorRow): string | null =>
+  row["sa.proposed_severity"] ?? row["event.severity"] ?? null;
+
+/** True for events a pipeline in observe mode only recorded a proposal for. */
+export const isObserved = (row: MonitorRow): boolean =>
+  row["sa.proposed_severity"] !== null &&
+  row["sa.proposed_severity"] !== undefined;
 
 export interface Totals {
   total: number;
   processed: number;
   modified: number;
   unmatched: number;
+  /** Events a pipeline in observe mode only proposed a severity for (not yet applied). */
+  observed: number;
 }
 
 export function totals(rows: MonitorRow[]): Totals {
-  const t: Totals = { total: 0, processed: 0, modified: 0, unmatched: 0 };
+  const t: Totals = {
+    total: 0,
+    processed: 0,
+    modified: 0,
+    unmatched: 0,
+    observed: 0,
+  };
   for (const r of rows) {
     t.total += r.c;
     const cls = classify(r);
     if (cls !== "unprocessed") t.processed += r.c;
     if (cls === "modified") t.modified += r.c;
     if (r["sa.source"] === "unmatched") t.unmatched += r.c;
+    if (isObserved(r)) t.observed += r.c;
   }
   return t;
 }
@@ -114,8 +133,8 @@ export function dimensionValue(
     case "pipeline":
       return row.pipelineLabel ?? (pipelineKey(row) || NOT_SET);
     case "severity":
-      return row["event.severity"]
-        ? `Severity ${row["event.severity"]}`
+      return effectiveSeverity(row)
+        ? `Severity ${effectiveSeverity(row)}`
         : "(no severity)";
     default:
       return row[dim] ?? NOT_SET;
@@ -254,7 +273,7 @@ export function transitions(rows: MonitorRow[]): TransitionRow[] {
   for (const r of rows) {
     if (classify(r) !== "modified") continue;
     const from = r["sa.original_severity"] ?? null;
-    const to = r["event.severity"] ?? null;
+    const to = effectiveSeverity(r);
     const k = `${from}>${to}`;
     const e = map.get(k) ?? { from, to, events: 0 };
     e.events += r.c;

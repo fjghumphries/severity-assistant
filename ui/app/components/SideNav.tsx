@@ -86,9 +86,9 @@ export const SideNav = () => {
     >
       <NavItem
         icon={<HelpIcon />}
-        label="Getting started"
-        current={pathname.startsWith("/getting-started")}
-        onClick={() => navigate("/getting-started")}
+        label="Help"
+        current={pathname.startsWith("/help")}
+        onClick={() => navigate("/help")}
       />
 
       <Divider />

@@ -287,15 +287,20 @@ export const RuleEditorModal = ({
                 }
               />
             ))}
-            <Button
-              variant="emphasized"
-              onClick={() =>
-                setConditions((prev) => [...prev, emptyCondition()])
-              }
-              disabled={conditions.length >= registry.maxConditionsPerRule}
-            >
-              + Add condition
-            </Button>
+            {/* One condition at first; the next appears once this one has a label. */}
+            {conditions.length < registry.maxConditionsPerRule &&
+              conditions.every((c) => c.role !== null) && (
+                <Flex>
+                  <Button
+                    variant="emphasized"
+                    onClick={() =>
+                      setConditions((prev) => [...prev, emptyCondition()])
+                    }
+                  >
+                    + Add another condition
+                  </Button>
+                </Flex>
+              )}
           </Flex>
         )}
 

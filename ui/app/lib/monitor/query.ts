@@ -79,6 +79,8 @@ export interface MonitorRow {
   "sa.source": string | null;
   /** Severity the event arrived with, written by the app's pipeline before it overwrote it. */
   "sa.original_severity": string | null;
+  /** Written instead of `event.severity` by a pipeline in observe mode: what it WOULD set. */
+  "sa.proposed_severity"?: string | null;
   c: number;
 }
 
@@ -108,6 +110,6 @@ export function buildMonitorQuery(
             tier  = coalesce(arrayFirst(${f.tier}), toString(${f.tier})),
             stage = coalesce(arrayFirst(${f.stage}), toString(${f.stage})),
             pipeline = coalesce(arrayFirst(dt.openpipeline.pipelines), toString(dt.openpipeline.pipelines))
-| summarize c = count(), by:{t = bin(timestamp, ${BUCKET[window].query}), detector = dt.settings.object_id, pipeline, event.name, event.category, bu, app, tier, stage, event.severity, sa.source, sa.original_severity}
+| summarize c = count(), by:{t = bin(timestamp, ${BUCKET[window].query}), detector = dt.settings.object_id, pipeline, event.name, event.category, bu, app, tier, stage, event.severity, sa.source, sa.original_severity, sa.proposed_severity}
 | limit ${MONITOR_ROW_LIMIT}`;
 }

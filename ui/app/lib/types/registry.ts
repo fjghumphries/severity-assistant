@@ -6,6 +6,8 @@
  * APP_STATE_KEY -- see lib/config/registry.ts.
  */
 
+import { SAFE_DEFAULT_MATCHER } from "../config/matcherPresets";
+
 export type RoleCardinality = "single" | "multi";
 
 export interface RoleDefinition {
@@ -44,6 +46,10 @@ export interface SecurityContextSetting {
  * registry's own top-level fields, unchanged from before profiles existed). Roles are shared;
  * everything here is per profile, and so are the rules (see `rulesKeyFor`).
  */
+/** "live" writes `event.severity`; "observe" writes `sa.proposed_severity` and leaves
+ * `event.severity` alone, so the effect can be compared before anything real changes. Absent = live. */
+export type WriteMode = "live" | "observe";
+
 export interface Profile {
   /** Stable slug, used in the rules storage key and the pipeline's customId. */
   id: string;
@@ -53,17 +59,19 @@ export interface Profile {
   routeMatcher: string;
   defaultSeverity: DefaultSeverity;
   securityContext?: SecurityContextSetting;
+  writeMode?: WriteMode;
 }
 
 export interface RoleRegistry {
   maxConditionsPerRule: number;
   roles: RoleDefinition[];
   defaultSeverity: DefaultSeverity;
-  /** OpenPipeline routing matcher for this app's route. Default "true". */
+  /** OpenPipeline routing matcher for this app's route. New installs take only opted-in events. */
   routeMatcher: string;
   pipelineCustomId: string;
   /** Optional: registries saved before this existed have none, which means mode "none". */
   securityContext?: SecurityContextSetting;
+  writeMode?: WriteMode;
   /** Additional profiles beyond the default one. Absent = only the default profile. */
   profiles?: Profile[];
   /** Set only on the per-profile view built by `effectiveRegistry`, never stored. */
@@ -73,6 +81,18 @@ export interface RoleRegistry {
 }
 
 export const DEFAULT_MAX_CONDITIONS_PER_RULE = 4;
+
+/**
+ * How many conditions one rule may combine: one per usable label (each label at most once), up to
+ * the four slots a rule can store. Derived, never typed: a larger number would let the editor offer
+ * a fifth condition that the rule record silently drops, widening what the rule matches.
+ */
+export function derivedMaxConditions(roles: RoleDefinition[]): number {
+  const usable = roles.filter(
+    (r) => r.enabled && r.cardinality === "single",
+  ).length;
+  return Math.max(1, Math.min(4, usable));
+}
 
 /** The four built-in roles from the original test tenant (docs/10-phase0-results.md). Used only
  * as a starting point for the guided setup flow -- never assumed to exist without user
@@ -89,7 +109,7 @@ export function emptyRegistry(): RoleRegistry {
     maxConditionsPerRule: DEFAULT_MAX_CONDITIONS_PER_RULE,
     roles: [],
     defaultSeverity: { mode: "leave" },
-    routeMatcher: "true",
+    routeMatcher: SAFE_DEFAULT_MATCHER,
     pipelineCustomId: "pipeline_severity_assistant_v1",
   };
 }

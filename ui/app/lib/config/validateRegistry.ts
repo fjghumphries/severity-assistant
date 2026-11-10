@@ -15,10 +15,11 @@ export interface ValidationIssue {
 export function validateRegistry(registry: RoleRegistry): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
-  if (registry.maxConditionsPerRule < 1 || registry.maxConditionsPerRule > 10) {
+  // Rules store four condition slots, so more than four would be silently truncated.
+  if (registry.maxConditionsPerRule < 1 || registry.maxConditionsPerRule > 4) {
     issues.push({
       field: "maxConditionsPerRule",
-      message: "Must be between 1 and 10.",
+      message: "Must be between 1 and 4 (a rule stores four conditions).",
     });
   }
 

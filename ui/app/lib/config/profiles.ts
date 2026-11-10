@@ -66,6 +66,7 @@ export function effectiveRegistry(
     routeMatcher: p.routeMatcher,
     defaultSeverity: p.defaultSeverity,
     securityContext: p.securityContext,
+    writeMode: p.writeMode,
     pipelineDisplayName: `${MANAGED_PREFIX}: ${p.name} (generated -- do not edit)`,
     routeDescription: `${MANAGED_PREFIX}: ${p.name} (managed by the app)`,
   };

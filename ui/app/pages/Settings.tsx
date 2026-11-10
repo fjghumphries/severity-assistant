@@ -2,53 +2,27 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import { Flex, Surface } from "@dynatrace/strato-components/layouts";
 import { Heading, Paragraph } from "@dynatrace/strato-components/typography";
-import {
-  TextInput,
-  Switch,
-  NumberInputV2 as NumberInput,
-  Select,
-} from "@dynatrace/strato-components/forms";
+import { TextInput, Switch, Select } from "@dynatrace/strato-components/forms";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { ProgressCircle } from "@dynatrace/strato-components/content";
 import { CriticalIcon } from "@dynatrace/strato-icons";
 
-import { useDiscovery } from "../lib/queries/useDiscovery";
-import { deriveFillRate, KNOWN_FIELD_TO_COLUMN } from "../lib/queries/derive";
-import { RoleColumn } from "../lib/types/discovery";
-import {
-  BUILT_IN_ROLE_TEMPLATES,
-  emptyRegistry,
-  RoleDefinition,
-  RoleRegistry,
-} from "../lib/types/registry";
+import { useFillRates } from "../lib/queries/useFillRates";
+import { isProbeableField } from "../lib/queries/fillRate";
+import { RoleDefinition, RoleRegistry } from "../lib/types/registry";
 import { DangerZone } from "./settings/DangerZone";
+import { RulesTransfer } from "./settings/RulesTransfer";
 import { validateRegistry } from "../lib/config/validateRegistry";
 import { useRegistry, useSaveRegistry } from "../lib/config/useRegistry";
+import { labelImpact, type ProfileRules } from "../lib/config/labelImpact";
+import { readAllRules } from "../lib/config/readAllRules";
+import { firstRunRegistry } from "../lib/config/firstRun";
+import { ObserveWarning } from "../components/ObserveWarning";
+import { MatcherField } from "../components/MatcherField";
 import { SaveBar } from "../components/SaveBar";
 import { HelpTip, Intro } from "../components/HelpTip";
 import { DEBUG_ENABLED } from "../debug/flag"; // DEBUG-HOOK
 import { DebugPanel } from "../debug/DebugPanel"; // DEBUG-HOOK
-
-/** Default field guesses for the built-in roles, from docs/10-phase0-results.md. Only a
- * starting point for first-run setup -- always shown editable, never assumed silently. */
-const DEFAULT_FIELD_GUESSES: Record<string, string> = {
-  business_unit: "primary_tags.bu",
-  application: "primary_tags.landscape",
-  tier: "primary_tags.tier",
-  stage: "primary_tags.stage",
-};
-
-function firstRunRegistry(): RoleRegistry {
-  const base = emptyRegistry();
-  base.roles = BUILT_IN_ROLE_TEMPLATES.map((t) => ({
-    role: t.role,
-    label: t.label,
-    field: DEFAULT_FIELD_GUESSES[t.role] ?? "",
-    cardinality: "single",
-    enabled: true,
-  }));
-  return base;
-}
 
 /** Small subdued explanatory line under a field label. */
 const Hint = ({ children }: { children: React.ReactNode }) => (
@@ -57,18 +31,22 @@ const Hint = ({ children }: { children: React.ReactNode }) => (
 
 function fillRateLabel(
   field: string,
-  rows: ReturnType<typeof useDiscovery>["rows"],
+  fill: ReturnType<typeof useFillRates>,
 ): string {
-  const column = KNOWN_FIELD_TO_COLUMN[field] as RoleColumn | undefined;
-  if (!column) return "(live stats unavailable for this field)";
-  const rate = deriveFillRate(rows, column);
-  return `${(rate * 100).toFixed(0)}% of events in this window`;
+  const f = field.trim();
+  if (f === "") return "(no field mapped)";
+  if (!isProbeableField(f)) return "(live stats unavailable for this field)";
+  if (fill.isLoading) return "Checking...";
+  if (fill.isError) return "(could not read live stats)";
+  const rate = fill.rates[f];
+  return rate === undefined
+    ? "(no data)"
+    : `${(rate * 100).toFixed(0)}% of events in this window`;
 }
 
 export const Settings = () => {
   const { registry: saved, isLoading, isError, error, refetch } = useRegistry();
   const save = useSaveRegistry();
-  const { rows, isLoading: discoveryLoading } = useDiscovery("2h");
 
   const [draft, setDraft] = useState<RoleRegistry | null>(null);
   const [saveState, setSaveState] = useState<
@@ -83,6 +61,24 @@ export const Settings = () => {
   }, [saved, draft]);
 
   const issues = useMemo(() => (draft ? validateRegistry(draft) : []), [draft]);
+  const fill = useFillRates(draft?.roles.map((r) => r.field) ?? []);
+
+  // Every profile's rules, read once, so a change to a label can name the rules it would break.
+  const [allRules, setAllRules] = useState<ProfileRules[]>([]);
+  useEffect(() => {
+    if (!saved || saved.roles.length === 0) return;
+    let cancelled = false;
+    void readAllRules(saved).then((r) => {
+      if (!cancelled) setAllRules(r);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [saved]);
+  const impact = useMemo(
+    () => (draft && saved ? labelImpact(saved, draft, allRules) : []),
+    [draft, saved, allRules],
+  );
 
   // Compared without `profiles`: they live in the same stored object but are edited and saved on
   // the Profiles screen, so a change there is not an unsaved change here.
@@ -133,17 +129,6 @@ export const Settings = () => {
     });
   };
 
-  const moveRole = (index: number, direction: -1 | 1) => {
-    setDraft((d) => {
-      if (!d) return d;
-      const target = index + direction;
-      if (target < 0 || target >= d.roles.length) return d;
-      const roles = d.roles.slice();
-      [roles[index], roles[target]] = [roles[target], roles[index]];
-      return { ...d, roles };
-    });
-  };
-
   const addCustomRole = () => {
     setDraft((d) => {
       if (!d) return d;
@@ -183,11 +168,7 @@ export const Settings = () => {
   // Examples in the copy use the user's own labels, never fixed names.
   const labelOf = (i: number, fallback: string) =>
     draft.roles[i]?.label.trim() || fallback;
-  const [l0, l1, l2] = [
-    labelOf(0, "Label A"),
-    labelOf(1, "Label B"),
-    labelOf(2, "Label C"),
-  ];
+  const l0 = labelOf(0, "Label A");
   const firstField = draft.roles[0]?.field.trim() || "primary_tags.team";
 
   return (
@@ -201,6 +182,28 @@ export const Settings = () => {
               not stored settings. Until you click Save, rules cannot use them:
               the rule editor will show no labels to choose from.
             </Paragraph>
+          </Flex>
+        </Surface>
+      )}
+      {impact.length > 0 && (
+        <Surface padding={16}>
+          <Flex flexDirection="column" gap={4}>
+            <Paragraph>
+              <strong>
+                This change would make {impact.length}{" "}
+                {impact.length === 1 ? "rule" : "rules"} invalid.
+              </strong>{" "}
+              Invalid rules block publishing until you edit or delete them.
+              Nothing already published changes.
+            </Paragraph>
+            {impact.slice(0, 8).map((i) => (
+              <Paragraph key={`${i.profileId}/${i.ruleId}/${i.reason}`}>
+                &bull; {i.profileName}: &quot;{i.ruleName}&quot; {i.reason}
+              </Paragraph>
+            ))}
+            {impact.length > 8 && (
+              <Paragraph>...and {impact.length - 8} more.</Paragraph>
+            )}
           </Flex>
         </Surface>
       )}
@@ -221,21 +224,6 @@ export const Settings = () => {
         >
           Map each label to the tenant field that holds its value.
         </Intro>
-        <Intro
-          tip={
-            <>
-              The order only decides how labels are listed in the rule editors.
-              It does not affect which rule wins: defaults each cover one event
-              or detector, and exceptions are resolved by their own explicit
-              order, where the last match wins.
-            </>
-          }
-        >
-          Use Up/Down to set the order labels appear in the rule editors.
-        </Intro>
-
-        {discoveryLoading && <Paragraph>Loading fill-rate stats...</Paragraph>}
-
         {draft.roles.map((role, i) => (
           <Surface key={i} padding={20}>
             <Flex flexDirection="column" gap={12}>
@@ -257,7 +245,7 @@ export const Settings = () => {
                 </Flex>
                 <Flex flexDirection="column" gap={2}>
                   <Paragraph>Fill rate</Paragraph>
-                  <Paragraph>{fillRateLabel(role.field, rows)}</Paragraph>
+                  <Paragraph>{fillRateLabel(role.field, fill)}</Paragraph>
                 </Flex>
               </Flex>
 
@@ -267,25 +255,7 @@ export const Settings = () => {
                 flexFlow="wrap"
                 gap={12}
               >
-                <Flex alignItems="center" gap={8}>
-                  <Paragraph>
-                    {i + 1} of {draft.roles.length}
-                  </Paragraph>
-                  <Button
-                    variant="emphasized"
-                    onClick={() => moveRole(i, -1)}
-                    disabled={i === 0}
-                  >
-                    ▲ Up
-                  </Button>
-                  <Button
-                    variant="emphasized"
-                    onClick={() => moveRole(i, 1)}
-                    disabled={i === draft.roles.length - 1}
-                  >
-                    ▼ Down
-                  </Button>
-                </Flex>
+                <span />
 
                 <Flex alignItems="center" gap={12}>
                   <Switch
@@ -316,8 +286,32 @@ export const Settings = () => {
           is the one part of this page shared by every profile.
         </Paragraph>
         <Flex gap={16} flexFlow="wrap">
+          <Flex flexDirection="column" gap={2} style={{ minWidth: 320 }}>
+            <Paragraph>What it does to events</Paragraph>
+            <Select
+              value={draft.writeMode ?? "live"}
+              onChange={(value) =>
+                value && setDraft((d) => (d ? { ...d, writeMode: value } : d))
+              }
+            >
+              <Select.Content>
+                <Select.Option value="live">
+                  Live: set event.severity
+                </Select.Option>
+                <Select.Option value="observe">
+                  Observe: only record what it would set
+                </Select.Option>
+              </Select.Content>
+            </Select>
+            <Hint>
+              Observe writes sa.proposed_severity and leaves event.severity
+              alone, so you can compare on the Results screen before anything
+              real changes. Publish again after switching.
+            </Hint>
+            {draft.writeMode === "observe" && <ObserveWarning />}
+          </Flex>
           <Flex flexDirection="column" gap={2} style={{ minWidth: 220 }}>
-            <Paragraph>When no rule matches</Paragraph>
+            <Paragraph>Events with no rule</Paragraph>
             <Select
               value={draft.defaultSeverity.mode}
               onChange={(value) =>
@@ -443,42 +437,12 @@ export const Settings = () => {
             </Flex>
           )}
 
-          <Flex flexDirection="column" gap={2} style={{ minWidth: 160 }}>
-            <Paragraph>Max conditions per rule</Paragraph>
-            <NumberInput
-              value={draft.maxConditionsPerRule}
-              onChange={(value) =>
-                setDraft((d) =>
-                  d ? { ...d, maxConditionsPerRule: value ?? 4 } : d,
-                )
-              }
-              min={1}
-              max={10}
-            />
-            <Hint>
-              How many label conditions one rule may combine, e.g. {l0} + {l1} +{" "}
-              {l2} counts as 3. Higher allows more specific rules, but every
-              distinct combination actually used across your rules costs
-              pipeline budget (see the Pipeline tab).
-            </Hint>
-          </Flex>
-
-          <Flex flexDirection="column" gap={2} style={{ minWidth: 260 }}>
-            <Paragraph>Route matcher</Paragraph>
-            <TextInput
-              value={draft.routeMatcher}
-              onChange={(value) =>
-                setDraft((d) => (d ? { ...d, routeMatcher: value } : d))
-              }
-            />
-            <Hint>
-              A DQL matcher deciding which Davis events reach this app&apos;s
-              pipeline. <code>true</code> (default) means every event. Narrow
-              it, e.g. <code>dt.security_context==&quot;teamA&quot;</code>, to
-              scope this app to a subset of events without touching the
-              tenant&apos;s other routing.
-            </Hint>
-          </Flex>
+          <MatcherField
+            value={draft.routeMatcher}
+            onChange={(value) =>
+              setDraft((d) => (d ? { ...d, routeMatcher: value } : d))
+            }
+          />
 
           <Flex flexDirection="column" gap={2} style={{ minWidth: 280 }}>
             <Paragraph>Pipeline custom ID</Paragraph>
@@ -531,6 +495,7 @@ export const Settings = () => {
         }}
       />
       {DEBUG_ENABLED && <DebugPanel />} {/* DEBUG-HOOK */}
+      <RulesTransfer />
       <DangerZone registry={saved ?? draft} />
     </Flex>
   );

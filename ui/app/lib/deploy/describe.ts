@@ -339,3 +339,38 @@ export function describeChangeLine(s: ChangeSummary): string {
   if (s.orderChanged) parts.push("exception order changed");
   return parts.length > 0 ? parts.join("; ") : "no rule-level changes";
 }
+
+const TONE_WORD: Record<ChangeTone, string> = {
+  added: "Add",
+  changed: "Change",
+  removed: "Remove",
+};
+
+/**
+ * One line per change, for the deploy confirmation: "Add default: CPU (severity 3)",
+ * "Change exception: Foo -- severity 2 -> 1". `describeChangeLine` stays as the one-sentence form.
+ */
+export function describeChangeLines(s: ChangeSummary): string[] {
+  const lines: string[] = [];
+  const add = (noun: string, items: ChangeItem[]) => {
+    for (const tone of TONES) {
+      for (const i of items.filter((x) => x.tone === tone)) {
+        const extra =
+          tone === "changed" && i.changes && i.changes.length > 0
+            ? i.changes.join("; ")
+            : i.detail;
+        lines.push(
+          `${TONE_WORD[tone]} ${noun}: ${i.title}${extra ? ` -- ${extra}` : ""}`,
+        );
+      }
+    }
+  };
+  add("default", s.defaults);
+  add("exception", s.exceptions);
+  add("threshold default", s.thresholds);
+  add("security context", s.security);
+  if (s.internalChanged) lines.push("Regenerate the app's own plumbing");
+  for (const setting of s.settings) lines.push(`Pipeline setting: ${setting}`);
+  if (s.orderChanged) lines.push("Change the order of exceptions");
+  return lines;
+}

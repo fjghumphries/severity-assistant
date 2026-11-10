@@ -1,6 +1,8 @@
 import {
   byDetector,
   classify,
+  effectiveSeverity,
+  isObserved,
   filterOptions,
   filterRows,
   normalizeRows,
@@ -61,6 +63,7 @@ it("classifies and totals", () => {
     processed: 9,
     modified: 3,
     unmatched: 4,
+    observed: 0,
   });
 });
 
@@ -186,5 +189,54 @@ describe("pipeline helpers", () => {
         "Team A",
       ].sort(),
     );
+  });
+});
+
+describe("observe mode rows", () => {
+  const row = (
+    over: Partial<import("./query").MonitorRow>,
+  ): import("./query").MonitorRow => ({
+    t: "2026-01-01T00:00:00Z",
+    detector: null,
+    "event.name": "CPU",
+    "event.category": null,
+    bu: null,
+    app: null,
+    tier: null,
+    stage: null,
+    pipeline: "davis.events:pipeline_severity_assistant_v1",
+    "event.severity": "5",
+    "sa.source": "default",
+    "sa.original_severity": "5",
+    c: 3,
+    ...over,
+  });
+
+  it("an observe-mode event is 'modified' when its proposal differs, though event.severity is untouched", () => {
+    const r = row({ "sa.proposed_severity": "2" });
+    expect(classify(r)).toBe("modified");
+    expect(effectiveSeverity(r)).toBe("2");
+    expect(isObserved(r)).toBe(true);
+  });
+
+  it("is unchanged when the proposal equals what it arrived with", () => {
+    expect(classify(row({ "sa.proposed_severity": "5" }))).toBe("unchanged");
+  });
+
+  it("live rows behave as before", () => {
+    const live = row({ "event.severity": "2" });
+    expect(classify(live)).toBe("modified");
+    expect(effectiveSeverity(live)).toBe("2");
+    expect(isObserved(live)).toBe(false);
+  });
+
+  it("totals count observed events separately", () => {
+    const t = totals([row({ "sa.proposed_severity": "2" }), row({ c: 4 })]);
+    expect(t).toMatchObject({
+      total: 7,
+      processed: 7,
+      modified: 3,
+      observed: 3,
+    });
   });
 });
