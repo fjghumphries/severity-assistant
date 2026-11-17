@@ -1,46 +1,44 @@
 # Severity Assistant
 
-Use Dynatrace's **`event.severity`** without writing or maintaining OpenPipeline code. You write severity
-rules in business terms; the app builds and maintains the Davis-events pipeline that applies them.
+A Dynatrace app for setting **`event.severity`** on Davis events from rules written in business terms.
+You say how severe an event is, optionally depending on labels such as business unit, application, tier
+or team; the app generates and maintains the Davis-events OpenPipeline pipeline that applies the rules.
 
 > **Evaluation build, not a supported Dynatrace product.** Use a non-production tenant first. Questions
 > and feedback go to this repository's issues.
 
-## Why this app
+## What it is for
 
 Davis events and problems carry a severity (`event.severity`), and a problem takes the severity of its
-most severe event. That field is what you can prioritise, route and escalate on: a ServiceNow priority,
-a notification channel, a workflow branch.
+most severe event. Workflows, notification routing and ITSM integrations (a ServiceNow priority, for
+example) can build on that field.
 
-The catch is that the severity an event arrives with comes from the detector that raised it, not from
-what the event means for *your* business. The same CPU alert looks identical on the payments gateway
-and on a test box. Making severity reflect business impact means setting it yourself in OpenPipeline,
-and that is where it can become a challenge at scale
+The severity an event arrives with is set by the detector that raised it, which does not know what the
+event means for a particular application or team: the same CPU alert looks identical on a payments
+gateway and on a test host. OpenPipeline can set the severity conditionally, and that is the mechanism
+this app uses. What the app adds is a way to keep the rules as data instead of as processor logic:
 
-This app lets you use the severity field without managing that code for the most common scenarios. You 
-write rules; the app writes and maintains the pipeline.
+- **Rules in business terms.** "CPU saturation is 3, but 1 for the payments team." The labels are your
+  own (business unit, application, tier, stage, team...), mapped to the tenant fields that hold them.
+- **A generated pipeline.** The pipeline is regenerated from the rules each time, so it always matches
+  them. It is an ordinary OpenPipeline pipeline: every processor has a plain-language description, and
+  you can open it in the OpenPipeline settings. Changes are shown as a rule-level diff before anything
+  is written, and processors the app does not own are left alone.
+- **Staged rollout.** The route stays off until you enable it, an observe mode records what the app
+  would set without changing `event.severity`, backups to your computer are optional, and uninstalling
+  removes only what the app created.
+- **Traceability.** Every event the app touches records what decided its severity (`sa.source`) and
+  what it arrived with (`sa.original_severity`). "Explain this event" shows which rule wins and why,
+  and you can check the result with a query.
 
-- **Severity in business terms.** "Increased Error rate is 3, but 1 for the payments team." The labels are
-  your own (business unit, application, tier, stage...). 
-- **No pipeline to maintain.** The pipeline is regenerated from your rules every time, so it cannot
-  drift from them. Changes are shown as a rule-level diff before anything is written, and processors
-  the app does not own are left alone.
-- **Safe to try, easy to undo.** A route that stays off until you turn it on, an observe mode that
-  records what it *would* set without changing anything, optional backups on your computer, and an
-  uninstall that removes only what the app created. Other teams' routes are never edited.
-- **Verifiable, so you can trust it.** Every event the app touches records which tier decided it
-  (`sa.source`) and what it arrived with (`sa.original_severity`). "Explain this event" shows which
-  rule wins and why, and you can check the result with a query.
-
-It is for Dynatrace admins and operations teams who want severity to mean something downstream without
-becoming OpenPipeline authors. It does not create alerts or change detectors; it sets the severity of
-the events your detectors already raise.
+It is aimed at Dynatrace admins and operations teams who manage severity for many applications or
+teams. It does not create alerts or change detectors; it sets the severity of the events your detectors
+already raise.
 
 ### An example
 
-Northwind Bank runs hundreds of applications for dozens of teams, and one alert, *CPU saturation*, fires
-across all of them. Today it carries the same severity everywhere, so a payment outage and a broken
-test box look alike.
+Northwind Bank has many applications and teams, and one alert, *CPU saturation*, fires across all of
+them with the same severity.
 
 **Retail Banking** runs the payments gateway: gold tier, in production, where every minute of downtime
 costs money. **Corporate IT** runs internal tools such as HR and expenses, where the same alert can wait
@@ -52,11 +50,11 @@ until morning. Severity runs from **1 (most severe) to 5**. Using the built-in l
 4. *Retail Banking, gold tier, production:* **1**. This is the one worth waking someone for.
 5. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
 
-The last matching rule wins, so putting the specific rules after the general ones does the right thing. The
-same alert now arrives as **1** on the production payments gateway, **5** on its dev copy, **4** on the HR
-tool and **3** everywhere else, without anyone writing OpenPipeline. When Retail Banking's SRE team wants
-to own its rules, it gets its own profile with a narrow matcher for its events, so Corporate IT's pipeline
-and everyone else's routes are left untouched.
+The last matching rule wins, so the specific rules go after the general ones. The same alert now arrives
+as **1** on the production payments gateway, **5** on its dev copy, **4** on the HR tool and **3**
+everywhere else, and the app generates the pipeline from those rules. When Retail Banking's SRE team
+wants to own its rules, it can get its own profile with a narrow matcher for its events, which leaves
+Corporate IT's pipeline and everyone else's routes untouched.
 
 ## How it works
 
@@ -122,7 +120,7 @@ screens and label fill rates look at the last two hours; the Results screen look
 
 The app id is `my.severity.assistant`.
 
-### Option A: from source (recommended)
+### Option A: from source
 
 Needs Node.js 24 and the Dynatrace App Toolkit (installed by `npm install`).
 
@@ -211,7 +209,6 @@ customers' severity needs. Please open an issue on this repository.
 
 ## Known limitations
 
-- **Problem-level severity**, see the note near the top.
 - **Pipeline groups and bucket assignment** are out of scope, and a profile cannot be a member of a
   pipeline group (the stages the app writes are silently ignored there).
 - **Dynatrace Spaces** is not supported.
@@ -223,19 +220,6 @@ customers' severity needs. Please open an issue on this repository.
   refuses to publish something that would not fit rather than writing a partial pipeline. The full list
   is on the **Help** page.
 - **Test against a saved, routed pipeline**, not OpenPipeline Preview.
-
-## Test status
-
-**Verified on a test tenant, with events sent through the Events API:** label mapping and saving; rules
-(rules, exceptions, thresholds); compiling and publishing the pipeline; enabling the route;
-event-level results; reordering, deleting and remapping, and changing the fallback. Not yet run against
-events raised by a real anomaly detector.
-
-**Less exercised:** restoring from a backup file; the uninstall and full "Reset the app" flows; the
-security-context stage; the Results screen; rules keyed on an anomaly detector against a real firing
-detector. Everything added in 0.2.0 (setup wizard, Explain an event, observe mode, rules export and import,
-the matcher dropdown, the grouped Help FAQ) has unit tests, and the observe-mode processor was checked with
-the tenant's processor preview, but none of it has been clicked through in a browser.
 
 ## Contributing
 
