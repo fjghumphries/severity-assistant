@@ -257,6 +257,12 @@ Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
+### 0.2.1 (2026-11-17)
+
+**Fixed**
+- Event names and label values containing `|` are no longer rejected. The check was left over from the removed composite-key scheme.
+- A fixed-severity default can no longer be saved with "contains" matching. It used to compile as an exact match without saying so. Use "is exactly", or make it an exception, which does support "contains".
+
 ### 0.2.0 (2026-11-10)
 
 **Added**

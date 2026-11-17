@@ -24,13 +24,6 @@ export function validateRule(
     issues.push({ field: "name", message: `${prefix}: name cannot be empty.` });
   }
 
-  if (rule.event_name !== null && rule.event_name.includes("|")) {
-    issues.push({
-      field: "event_name",
-      message: `${prefix}: event name cannot contain "|" -- it corrupts the composite key.`,
-    });
-  }
-
   if (rule.event_name !== null && rule.detector_id !== null) {
     issues.push({
       field: "event_name",
@@ -108,13 +101,20 @@ export function validateRule(
         });
       }
     }
+  }
 
-    if (c.value !== null && c.value.includes("|")) {
-      issues.push({
-        field: "conditions",
-        message: `${prefix}: value for role "${c.role}" cannot contain "|" -- it corrupts the composite key.`,
-      });
-    }
+  if (
+    rule.rule_type === "keyed" &&
+    !isException(rule) &&
+    rule.event_name !== null &&
+    rule.event_name_match === "contains"
+  ) {
+    // Keyed Defaults compile into an exact-match inline lookup, which cannot do "contains";
+    // without this check the rule would silently match only the literal text.
+    issues.push({
+      field: "event_name_match",
+      message: `${prefix}: "contains" is not supported on a default with a fixed severity (it would only match the exact name). Use "is exactly", or add it as an exception.`,
+    });
   }
 
   if (rule.rule_type === "keyed") {
