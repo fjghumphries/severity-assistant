@@ -6,8 +6,6 @@ or team; the app generates and maintains the OpenPipeline pipeline for Dynatrace
 
 > **Evaluation build, not a supported Dynatrace product.** Use a non-production tenant first. Questions
 > and feedback go to this repository's issues.
->
-> [Rules!](screens/rules.png)
 
 ## What it is for
 
