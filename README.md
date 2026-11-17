@@ -41,27 +41,27 @@ already raise.
 
 ### An example
 
-Northwind Energy runs hundreds of services: smart-meter ingestion, outage management, customer billing
-and plenty of internal tools. Whenever one of them starts failing more often, Dynatrace Intelligence raises a *Failure
-rate increase* event, and its description says by how much: "Failure rate increased to 12%".
+Northwind Energy is a large energy company with very different businesses under one roof: **Trading**,
+**Upstream**, **Mobility** and more. They all run on Dynatrace, and the same kinds of alerts fire in all of
+them. A failure rate that climbs to 10% means something different in each. On the trading platform it can
+put real money at risk within minutes. On the EV charging network it is a poor experience for drivers.
+On an internal reporting tool in Upstream it can wait for the morning.
 
-The trouble is that the event looks the same everywhere. A 12% failure rate on the outage-management
-service in the middle of a storm is a call in the night. The same 12% on an internal reporting tool can
-wait until morning, and on a test copy nobody should be bothered at all.
+Yet an alert arrives with the severity its detector gave it, the same for everyone. So either everything
+looks urgent, or the on-call teams learn to ignore it.
 
-With Severity Assistant, the operations team says this once, in plain terms (severity runs from 1, the
-most severe, to 5):
+With Severity Assistant, each business tells the app what matters to it, in its own terms:
 
-- **The higher the failure rate, the higher the severity**, from 5% up to 50%.
-- **Grid Operations' production services are treated more seriously**: for them, 10% is already the
-  top severity.
-- **Anything in a development environment is the lowest severity**, whoever owns it.
+- **Trading:** a failure rate of 5% is already the top severity.
+- **Mobility:** the charging network and the fuel-card services are high severity from 10%; back-office
+  tools are not.
+- **Upstream:** production sites get the top severity from 20%; office tools stay low.
+- **Anywhere:** test environments are always the lowest severity.
 
-The app turns that into the pipeline. From then on the same event arrives with a severity that fits the
-situation: the top one on outage management, a middle one on the reporting tool, the lowest on the test
-copy. Workflows, notifications and ticket priorities that read the severity follow along. And when the
-Grid Operations SRE team wants to manage its own rules, it can have its own profile for its events,
-leaving everyone else's setup untouched.
+The app turns this into the pipeline that sets the severity on every event. Notifications, workflows and
+ticket priorities that read the severity then follow it: the right people are called for the right
+things, with less noise for everyone else. Each business can own its rules in its own profile, so a
+change in Trading never touches Upstream.
 
 ## How it works
 
