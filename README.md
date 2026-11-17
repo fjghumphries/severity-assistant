@@ -102,7 +102,7 @@ OpenPipeline, for example `exception #2 - set severity 1 for events named "Foo" 
 - **Stored in the app, not in the tenant's data:** the label mapping, profiles and rules, in App State.
   No Grail lookup tables are created.
 - **Removal:** each profile's pipeline and route can be removed from the app, and *Reset the app*
-  deletes what it stored. Severities already written to events stay: they cannot be un-written.
+  deletes what it stored and, optionally, the pipelines and routes it deployed. Severities already written to events stay: they cannot be un-written.
 
 ## How to install
 
@@ -256,6 +256,20 @@ the tenant's processor preview, but none of it has been clicked through in a bro
 Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
+
+### 0.2.2 (2026-11-17)
+
+**Added**
+- **Feedback links.** "Report a bug" and "Give feedback" in the top strip open a pre-filled GitHub issue (app version, screen and browser only; no tenant data).
+- **Profile always visible.** The top strip stays at the top while you scroll and is tinted in the profile's own colour.
+- **Labels explained.** Setup and Settings now say what labels are and that they are usually primary tags (business unit, application, tier, team, environment).
+- **Save button on the "Not saved yet" notice** in Settings.
+- **Reset the app can also remove the pipelines and routes** it deployed (ticked by default), so it really returns to a fresh install. The dialog lists what is deleted and what is never touched.
+
+**Fixed**
+- A new install lands on Setup even when the browser remembers an earlier install, and the "changes not active" banner no longer sits on top of "Setup is not finished".
+- A registry emptied by a reset that could not delete (`{}`) no longer loses its route matcher and roles: missing fields fall back to the fresh-install values; stored values always win.
+- Removed a Help sentence about a "maximum conditions per rule" setting that no longer exists.
 
 ### 0.2.1 (2026-11-17)
 

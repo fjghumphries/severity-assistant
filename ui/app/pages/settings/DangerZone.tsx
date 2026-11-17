@@ -8,7 +8,7 @@ import {
   Text,
 } from "@dynatrace/strato-components/typography";
 import { Button } from "@dynatrace/strato-components/buttons";
-import { TextInput } from "@dynatrace/strato-components/forms";
+import { Checkbox, TextInput } from "@dynatrace/strato-components/forms";
 import { Chip, ProgressCircle } from "@dynatrace/strato-components/content";
 import { Modal } from "@dynatrace/strato-components/overlays";
 import { CriticalIcon } from "@dynatrace/strato-icons";
@@ -19,7 +19,12 @@ import { useFlowStatus } from "../../lib/config/FlowStatus";
 import { clearProfileRules } from "../../lib/config/profileCleanup";
 import { useRuleCount } from "../../lib/config/useRuleCount";
 import { listProfiles } from "../../lib/config/profiles";
-import { readPipelineIndex, readRouting } from "../../lib/deploy/pipelineApi";
+import {
+  describeWriteError,
+  readPipelineIndex,
+  readRouting,
+} from "../../lib/deploy/pipelineApi";
+import { uninstallPipeline } from "../../lib/deploy/uninstall";
 import { describeRouteState } from "../../lib/deploy/routing";
 import type { RoleRegistry } from "../../lib/types/registry";
 import { UninstallSection } from "./UninstallSection";
@@ -150,6 +155,7 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
   const [resetOpen, setResetOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [working, setWorking] = useState(false);
+  const [alsoUninstall, setAlsoUninstall] = useState(true);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(
     null,
   );
@@ -205,6 +211,28 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
     setWorking(true);
     setMessage(null);
     try {
+      // Pipelines first: once the settings are gone the app no longer knows their names.
+      const removed: string[] = [];
+      if (alsoUninstall) {
+        for (const row of rows?.filter((r) => r.deployed) ?? []) {
+          try {
+            await uninstallPipeline(row.pipelineCustomId);
+            removed.push(row.name);
+          } catch (e) {
+            setMessage({
+              ok: false,
+              text: `Nothing was reset. Uninstalling "${row.name}" failed: ${describeWriteError(e)}. ${
+                removed.length > 0
+                  ? `Already removed: ${removed.join(", ")}.`
+                  : "Nothing was removed."
+              } Fix that or untick the option, then try again.`,
+            });
+            void load();
+            refreshFlowStatus();
+            return;
+          }
+        }
+      }
       const outcome = await resetAppState(profiles.map((p) => p.id));
       if (outcome.failed.length > 0) {
         setMessage({
@@ -221,11 +249,17 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
           text:
             outcome.cleared.length > 0
               ? "Settings emptied. Deleting the keys outright needs the state:app-states:delete permission -- restart the dev server to grant it. Reload the app to start fresh."
-              : "Every setting and rule set has been deleted. Reload the app to start fresh.",
+              : `Every setting and rule set has been deleted${
+                  removed.length > 0
+                    ? `, and ${removed.length} pipeline${removed.length === 1 ? "" : "s"} and ${removed.length === 1 ? "its route" : "their routes"} removed from the tenant`
+                    : ""
+                }. Reload the app to start fresh.`,
         });
       }
       setResetOpen(false);
       setConfirmText("");
+      void load();
+      refreshFlowStatus();
     } catch (e) {
       setMessage({
         ok: false,
@@ -289,9 +323,11 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
 
       <Heading level={4}>Reset the app</Heading>
       <Prose>
-        Deletes the label mapping, every profile and every rule set. Pipelines
-        and routes already in the tenant are not touched, so uninstall them
-        first: after a reset the app no longer knows their names.
+        Returns the app to a fresh install. It deletes everything stored in the
+        app (the label mapping, every profile and every rule set) and, if you
+        tick the option, the pipelines and routes the app deployed in the
+        tenant. It does not change events that were already processed, and it
+        never touches pipelines or routes it did not create.
       </Prose>
       <Flex>
         <Button
@@ -339,7 +375,9 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
         }
       >
         <Flex flexDirection="column" gap={12}>
-          <Text>This deletes, for good:</Text>
+          <Text>
+            <Strong>In the app, deleted for good:</Strong>
+          </Text>
           <Text>
             - The label mapping and the default profile&apos;s settings.
           </Text>
@@ -347,17 +385,33 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
             - All {profiles.length} profile{profiles.length === 1 ? "" : "s"}{" "}
             and their rules.
           </Text>
+          <Text>
+            <Strong>In the tenant:</Strong>{" "}
+            {deployedCount === 0
+              ? "nothing to remove, the app has no deployed pipeline."
+              : "choose below whether the pipelines and routes the app deployed are removed too."}
+          </Text>
           {deployedCount > 0 && (
+            <Checkbox value={alsoUninstall} onChange={setAlsoUninstall}>
+              Also remove the {deployedCount} deployed pipeline
+              {deployedCount === 1 ? "" : "s"} and{" "}
+              {deployedCount === 1 ? "its route" : "their routes"} from the
+              tenant (recommended)
+            </Checkbox>
+          )}
+          <Text>
+            <Strong>Never touched:</Strong> events already processed keep the
+            severity they were given, other teams&apos; routes and pipelines,
+            and backup files you downloaded.
+          </Text>
+          {deployedCount > 0 && !alsoUninstall && (
             <Flex gap={8} alignItems="center">
               <CriticalIcon />
               <Text>
-                <Strong>
-                  {deployedCount} pipeline{deployedCount === 1 ? "" : "s"} still
-                  deployed.
-                </Strong>{" "}
-                Resetting leaves {deployedCount === 1 ? "it" : "them"} running
-                in the tenant with nothing in the app pointing at{" "}
-                {deployedCount === 1 ? "it" : "them"}. Uninstall above first.
+                {deployedCount === 1 ? "It keeps" : "They keep"} running with
+                nothing in the app pointing at{" "}
+                {deployedCount === 1 ? "it" : "them"}, and events still get the
+                old severities.
               </Text>
             </Flex>
           )}

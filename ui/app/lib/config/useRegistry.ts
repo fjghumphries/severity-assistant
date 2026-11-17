@@ -3,6 +3,7 @@ import { isNotFound, stateClient } from "@dynatrace-sdk/client-state";
 import {
   derivedMaxConditions,
   emptyRegistry,
+  withRegistryDefaults,
   Profile,
   RoleRegistry,
 } from "../types/registry";
@@ -43,7 +44,9 @@ export function useRegistry() {
   let parseError: string | null = null;
   if (data?.value) {
     try {
-      registry = JSON.parse(data.value) as RoleRegistry;
+      registry = withRegistryDefaults(
+        JSON.parse(data.value) as Partial<RoleRegistry>,
+      );
     } catch {
       parseError = "Stored role registry is not valid JSON.";
     }
@@ -72,7 +75,9 @@ export function useRegistry() {
 async function readStoredRegistry(): Promise<RoleRegistry | null> {
   try {
     const stored = await stateClient.getAppState({ key: REGISTRY_STATE_KEY });
-    return stored.value ? (JSON.parse(stored.value) as RoleRegistry) : null;
+    return stored.value
+      ? withRegistryDefaults(JSON.parse(stored.value) as Partial<RoleRegistry>)
+      : null;
   } catch (e) {
     if (looksLikeMissingKey((e as Error).message, e)) return null;
     throw e;

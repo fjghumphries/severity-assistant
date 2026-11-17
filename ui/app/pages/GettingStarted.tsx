@@ -133,7 +133,7 @@ const FAQ: Faq[] = [
   {
     topic: "Concepts",
     q: "What if I disable or remove a label that rules use?",
-    a: "Those rules become invalid, and the app will not publish until you fix them: the banner says so, and the Pipeline screen shows which rule. Re-enable the label, or edit or delete the rules. Nothing already deployed is touched, so the pipeline keeps running as it was. The same happens if you lower the maximum conditions per rule below what a rule uses.",
+    a: "Those rules become invalid, and the app will not publish until you fix them: the banner says so, and the Pipeline screen shows which rule. Re-enable the label, or edit or delete the rules. Nothing already deployed is touched, so the pipeline keeps running as it was.",
   },
   {
     topic: "Concepts",
@@ -201,7 +201,7 @@ const FAQ: Faq[] = [
   {
     topic: "Maintenance and removal",
     q: "How do I clear my rules, or start over?",
-    a: 'Both are under Settings > Remove and reset. "Delete all rules" empties one profile\'s rules and keeps everything around them: the route matcher, the fallback severity and the deployed pipeline. Events keep their current severity until you publish again, because the deployed pipeline still holds the old rules. To start over completely, uninstall each profile\'s pipeline first, which takes the pipeline and route out of the tenant but keeps the rules so you can publish again. "Reset the app" then deletes the label mapping, every profile and every rule set. It does not touch the tenant, so a pipeline left deployed would keep running with nothing in the app pointing at it.',
+    a: 'Both are under Settings > Remove and reset. "Delete all rules" empties one profile\'s rules and keeps everything around them: the route matcher, the fallback severity and the deployed pipeline. Events keep their current severity until you publish again, because the deployed pipeline still holds the old rules. To start over completely, use "Reset the app": it deletes the label mapping, every profile and every rule set, and (with the option ticked, the default) removes the pipelines and routes the app deployed. To take only the pipeline and route out of the tenant and keep the rules, uninstall that profile\'s pipeline instead. Neither changes events that were already processed.',
   },
   {
     topic: "Reference: what the app builds",

@@ -36,8 +36,8 @@ function clearLocalSelection(): void {
 
 /**
  * Deletes every stored setting and rule set the app owns, returning the app to a first-run state.
- * Pipelines and routes in the tenant are NOT touched -- uninstall those first, otherwise the app
- * forgets the customIds and can no longer find them.
+ * Pipelines and routes in the tenant are NOT touched here -- callers that want a full clean-up
+ * uninstall them first (lib/deploy/uninstall.ts), otherwise the app forgets the customIds.
  *
  * Falls back to writing an empty value for any key the platform refuses to delete (the delete
  * permission may not be granted yet), so no settings survive either way.

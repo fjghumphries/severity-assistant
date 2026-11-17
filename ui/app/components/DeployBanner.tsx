@@ -5,7 +5,9 @@ import { Flex } from "@dynatrace/strato-components/layouts";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { MessageContainer } from "@dynatrace/strato-components/content";
 
+import { needsSetup } from "../lib/config/firstRun";
 import { useFlowStatus } from "../lib/config/FlowStatus";
+import { useSharedRegistry } from "../lib/config/ProfileContext";
 import { nextStep } from "../lib/deploy/nextStep";
 
 /**
@@ -17,8 +19,10 @@ export const DeployBanner = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { deploy, route, enabledRules } = useFlowStatus();
+  const { registry } = useSharedRegistry();
 
-  if (pathname === "/pipeline") return null;
+  // Until the labels are set up there is nothing to deploy; the Finish setup banner is the one notice.
+  if (pathname === "/pipeline" || needsSetup(registry)) return null;
   const step = nextStep({
     kind: deploy?.kind ?? null,
     route,

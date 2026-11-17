@@ -20,6 +20,8 @@ import { isProbeableField } from "../lib/queries/fillRate";
 import { useFillRates } from "../lib/queries/useFillRates";
 import type { RoleRegistry } from "../lib/types/registry";
 
+import { LabelsExplainer } from "../components/LabelsExplainer";
+
 const STEPS = ["Welcome", "Labels", "Events", "Done"] as const;
 
 /**
@@ -136,11 +138,10 @@ export const Setup = () => {
         <Surface padding={24}>
           <Flex flexDirection="column" gap={16}>
             <Heading level={3}>Which fields hold your labels?</Heading>
+            <LabelsExplainer />
             <Paragraph>
-              Rules match on labels such as Business Unit or Tier. Tell the app
-              which tenant field or tag holds each one. The suggestions are
-              common defaults: change any that differ in your tenant. Leave a
-              field empty to switch that label off.
+              The suggested fields are common defaults: change any that differ
+              in your tenant. Leave a field empty to switch that label off.
             </Paragraph>
             {draft.roles.map((role, i) => (
               <Flex
@@ -176,11 +177,6 @@ export const Setup = () => {
                 <Text>{rate(role.field)}</Text>
               </Flex>
             ))}
-            <Text>
-              A low percentage means most events do not carry that field, so
-              rules on it will rarely match. You can add your own labels later
-              in Settings.
-            </Text>
             {error && <Paragraph>{error}</Paragraph>}
             <Flex gap={8}>
               <Button variant="emphasized" onClick={() => setStep(0)}>

@@ -8,6 +8,7 @@ import { DeployBanner } from "./components/DeployBanner";
 import { SetupBanner } from "./components/SetupBanner";
 import { Setup } from "./pages/Setup";
 import { FlowStatusProvider } from "./lib/config/FlowStatus";
+import { needsSetup } from "./lib/config/firstRun";
 import {
   ProfileProvider,
   useProfileId,
@@ -25,18 +26,23 @@ import { Settings } from "./pages/Settings";
 const RulesForProfile = () => <Rules key={useProfileId()} />;
 const PipelineForProfile = () => <Pipeline key={useProfileId()} />;
 
-const WELCOMED_KEY = "severity-assistant.welcomed";
+const LANDED_KEY = "severity-assistant.landed";
 
-/** The first visit in a browser lands on the setup; after that, straight to the rules. */
+/** Opening the app lands on the setup while no label is usable (derived from stored data, so a
+ * reinstall or a new tenant behaves like a first run), once per browser session so skipping the
+ * setup does not trap anyone; everyone else goes straight to the rules. */
 const Landing = () => {
-  let first = false;
+  const { registry, isLoading } = useSharedRegistry();
+  if (isLoading) return null;
+  let toSetup = false;
   try {
-    first = !window.localStorage.getItem(WELCOMED_KEY);
-    if (first) window.localStorage.setItem(WELCOMED_KEY, "1");
+    toSetup =
+      needsSetup(registry) && !window.sessionStorage.getItem(LANDED_KEY);
+    window.sessionStorage.setItem(LANDED_KEY, "1");
   } catch {
     // Storage unavailable: behave like a returning visitor.
   }
-  return <Navigate to={first ? "/setup" : "/rules"} replace />;
+  return <Navigate to={toSetup ? "/setup" : "/rules"} replace />;
 };
 
 const GATE_KEY = "severity-assistant.profile-gate";

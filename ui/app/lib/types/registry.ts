@@ -104,6 +104,15 @@ export const BUILT_IN_ROLE_TEMPLATES: { role: string; label: string }[] = [
   { role: "stage", label: "Stage" },
 ];
 
+/** A stored registry with any missing field filled from a fresh install's value, so a registry that
+ * was emptied (`{}`, as a reset does when deleting is not permitted) or saved by an older version
+ * still has a route matcher, roles and the rest. Stored values always win. */
+export function withRegistryDefaults(
+  stored: Partial<RoleRegistry>,
+): RoleRegistry {
+  return { ...emptyRegistry(), ...stored };
+}
+
 export function emptyRegistry(): RoleRegistry {
   return {
     maxConditionsPerRule: DEFAULT_MAX_CONDITIONS_PER_RULE,

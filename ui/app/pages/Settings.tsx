@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 
 import { Flex, Surface } from "@dynatrace/strato-components/layouts";
-import { Heading, Paragraph } from "@dynatrace/strato-components/typography";
+import {
+  Heading,
+  Paragraph,
+  Text,
+} from "@dynatrace/strato-components/typography";
 import { TextInput, Switch, Select } from "@dynatrace/strato-components/forms";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { ProgressCircle } from "@dynatrace/strato-components/content";
@@ -21,6 +25,7 @@ import { ObserveWarning } from "../components/ObserveWarning";
 import { MatcherField } from "../components/MatcherField";
 import { SaveBar } from "../components/SaveBar";
 import { HelpTip, Intro } from "../components/HelpTip";
+import { LabelsExplainer } from "../components/LabelsExplainer";
 import { DEBUG_ENABLED } from "../debug/flag"; // DEBUG-HOOK
 import { DebugPanel } from "../debug/DebugPanel"; // DEBUG-HOOK
 
@@ -182,6 +187,18 @@ export const Settings = () => {
               not stored settings. Until you click Save, rules cannot use them:
               the rule editor will show no labels to choose from.
             </Paragraph>
+            <Flex alignItems="center" gap={8}>
+              <Button
+                variant="accent"
+                disabled={saveState === "saving" || issues.length > 0}
+                onClick={handleSave}
+              >
+                {saveState === "saving" ? "Saving..." : "Save these labels"}
+              </Button>
+              {issues.length > 0 && (
+                <Text>Fix the problems listed below to save.</Text>
+              )}
+            </Flex>
           </Flex>
         </Surface>
       )}
@@ -209,6 +226,7 @@ export const Settings = () => {
       )}
       <Flex flexDirection="column" gap={8}>
         <Heading level={3}>Label mapping</Heading>
+        <LabelsExplainer />
         <Intro
           tip={
             <>
