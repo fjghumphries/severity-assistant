@@ -14,12 +14,16 @@ most severe event. Workflows, notification routing and ITSM integrations (a Serv
 example) can build on that field.
 
 The severity an event arrives with is set by the detector that raised it, which does not know what the
-event means for a particular application or team: the same CPU alert looks identical on a payments
-gateway and on a test host. OpenPipeline can set the severity conditionally, and that is the mechanism
+event means for a particular application or team: the same failure-rate alert looks identical on an
+outage-management service and on an internal reporting tool. OpenPipeline can set the severity conditionally, and that is the mechanism
 this app uses. What the app adds is a way to keep the rules as data instead of as processor logic:
 
-- **Rules in business terms.** "CPU saturation is 3, but 1 for the payments team." The labels are your
+- **Rules in business terms.** "Failure rate increase is 3, but 1 for Grid Operations." The labels are your
   own (business unit, application, tier, stage, team...), mapped to the tenant fields that hold them.
+- **Severity that follows a number.** When an event's description carries a value, such as Davis's
+  "Failure rate increased to 42%", the severity can follow it: pick the value for each severity, and give
+  a team or label its own bounds with an exception. Events from your own anomaly detectors need a little
+  setup first, described on the Help page.
 - **A generated pipeline.** The pipeline is regenerated from the rules each time, so it always matches
   them. It is an ordinary OpenPipeline pipeline: every processor has a plain-language description, and
   you can open it in the OpenPipeline settings. Changes are shown as a rule-level diff before anything
@@ -37,20 +41,23 @@ already raise.
 
 ### An example
 
-Northwind Bank has many applications and teams, and one alert, *CPU saturation*, fires across all of
-them with the same severity. **Retail Banking** runs the payments gateway: gold tier, in production,
-where every minute of downtime costs money. Severity runs from **1 (most severe) to 5**. Using the
-built-in labels (Business Unit, Application, Tier, Stage), the rules read:
+Northwind Energy runs hundreds of services, from smart-meter ingestion to outage management to customer
+billing, and Davis raises *Failure rate increase* events on all of them. The description carries the rate
+("Failure rate increased to 42%"), but the event arrives with the same severity whether it is the
+outage-management API or an internal reporting tool. Severity runs from **1 (most severe) to 5**. Using
+the built-in labels (Business Unit, Application, Tier, Stage), the rules read:
 
-1. **Rule:** CPU saturation is severity **3** for everyone.
-2. *Retail Banking:* **2**. It matters more here.
-3. *Retail Banking, gold tier, production:* **1**. This is the one worth waking someone for.
-4. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
+1. **Rule, by value:** the severity follows the rate in the event description: **50%** or more is **1**,
+   **20%** is **2**, **10%** is **3**, **5%** is **4**, anything lower is **5**.
+2. *Grid Operations, gold tier, production:* **1** from 10% and **2** from 5%. A failure rate of 10% on
+   the outage-management service is already worth waking someone for.
+3. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
 
-The last matching rule wins, so the specific rules go after the general ones. The same alert now arrives
-as **1** on the production payments gateway, **5** on its dev copy and **3** everywhere else, and the app
-generates the pipeline from those rules. A team that wants to own its rules can get its own profile with
-a narrow matcher for its events, which leaves everyone else's pipeline and routes untouched.
+The last matching rule wins, so the specific rules go after the general one. At a 12% failure rate the
+same event now arrives as **1** on the production outage-management API, **3** on the internal reporting
+tool and **5** on its dev copy, and the app generates the pipeline from those rules. A team that wants
+to own its rules, such as the Grid Operations SRE team, can get its own profile with a narrow matcher
+for its events, which leaves everyone else's pipeline and routes untouched.
 
 ## How it works
 
