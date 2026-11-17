@@ -15,20 +15,13 @@ a notification channel, a workflow branch.
 The catch is that the severity an event arrives with comes from the detector that raised it, not from
 what the event means for *your* business. The same CPU alert looks identical on the payments gateway
 and on a test box. Making severity reflect business impact means setting it yourself in OpenPipeline,
-and that is where it gets hard:
+and that is where it can become a challenge at scale
 
-- It is **code**: DQL scripts, lookup tables and a route, written by someone who knows OpenPipeline,
-  while the people who know what matters are somewhere else.
-- It is **hard to maintain**: every new application, team or exception means editing logic that nobody
-  can read at a glance.
-- It **fails silently**: a wrong key, a remapped field or a route in the wrong position produces no
-  error, just a pipeline that quietly does nothing, discovered when a sev-1 arrives as a sev-3.
+This app lets you use the severity field without managing that code for the most common scenarios. You 
+write rules; the app writes and maintains the pipeline.
 
-This app lets you use the severity field without owning that code. You write rules; the app writes and
-maintains the pipeline.
-
-- **Severity in business terms.** "CPU Saturation is 3, but 1 for the payments team." The labels are
-  your own (business unit, application, tier, stage...). You never see a script.
+- **Severity in business terms.** "Increased Error rate is 3, but 1 for the payments team." The labels are
+  your own (business unit, application, tier, stage...). 
 - **No pipeline to maintain.** The pipeline is regenerated from your rules every time, so it cannot
   drift from them. Changes are shown as a rule-level diff before anything is written, and processors
   the app does not own are left alone.
