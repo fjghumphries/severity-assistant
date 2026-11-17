@@ -10,7 +10,7 @@ import {
 } from "@dynatrace/strato-components/typography";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { TextInput } from "@dynatrace/strato-components/forms";
-import { Accordion } from "@dynatrace/strato-components/content";
+import { Accordion, CodeSnippet } from "@dynatrace/strato-components/content";
 
 import {
   InsidePipelineDiagram,
@@ -373,6 +373,26 @@ const InitialSetup = () => {
   );
 };
 
+/** Worked example for the "severity from a number" Help section (a host CPU detector). */
+const DETECTOR_QUERY = `timeseries cpu_usage = avg(dt.host.cpu.usage),
+  by: { dt.smartscape.host, host.name, primary_tags.bu, primary_tags.tier }
+| fieldsAdd max_cpu_usage = arrayMax(cpu_usage)`;
+
+const DETECTOR_TEMPLATE = `event.type: CUSTOM_ALERT
+event.name: CPU alert on {host.name}
+event.description: |
+  CPU is above the threshold of {threshold}.
+  Triggering Value: {max_cpu_usage}
+dt.davis.is_merging_allowed: true`;
+
+const DETECTOR_PATTERN = `DATA 'Triggering Value: 'DOUBLE:sa_v`;
+
+const DETECTOR_CHECK = `fetch dt.davis.events, from: -1h
+| filter matchesPhrase(event.name, "CPU alert")
+| fields timestamp, event.description, dt.davis.is_merging_allowed, dt.davis.disable_merging_reason
+| sort timestamp desc
+| limit 10`;
+
 /** Why the app exists, how an event flows through it, and the questions users are likely to ask. */
 export const GettingStarted = () => {
   const navigate = useNavigate();
@@ -390,8 +410,8 @@ export const GettingStarted = () => {
         <Heading level={2}>Help</Heading>
         <Prose>
           Severity Assistant decides how severe each Davis event is from rules
-          you write in business terms, instead of pipeline code, and manages the
-          pipeline and route that apply them.
+          you write in business terms, and generates and manages the pipeline
+          and route that apply them.
         </Prose>
       </Flex>
 
@@ -471,50 +491,105 @@ export const GettingStarted = () => {
               Severity from a number: set up your own detector first
             </Accordion.SectionLabel>
             <Accordion.SectionContent>
-              <Flex flexDirection="column" gap={12}>
+              <Flex flexDirection="column" gap={16}>
                 <Prose>
                   <Paragraph>
                     A rule that takes its severity from a number reads that
                     number from the event description. Events that Davis writes
                     itself (error rate, memory, slowdown and so on) need nothing
                     more. If the event comes from{" "}
-                    <Strong>your own anomaly detector</Strong>, the number is
-                    the value that triggered the alert, and it changes at every
-                    evaluation.
-                  </Paragraph>
-                  <Paragraph>
-                    <Strong>Allow merging in the detector.</Strong> Events of
-                    type <code>CUSTOM_ALERT</code>, which is what a custom
-                    anomaly detector creates, are not merged into existing
-                    problems by default; other event types are. Because the
-                    value changes, each evaluation is a new event, and without
-                    merging every one opens its own problem: on a test tenant a
-                    detector that evaluated every minute opened a one-minute
-                    problem per minute. In the detector&apos;s event template
-                    add the property <code>dt.davis.is_merging_allowed</code>{" "}
-                    with the value <code>true</code> (the &quot;Allow
-                    merge&quot; setting). The events then join one problem. The
-                    default alerting settings are fine.
-                  </Paragraph>
-                  <Paragraph>
-                    <Strong>To check it,</Strong> look at your detector&apos;s
-                    events: <code>dt.davis.is_merging_allowed</code> should be
-                    true, and <code>dt.davis.disable_merging_reason</code>,
-                    which reads &quot;Set by event reporter&quot; when merging
-                    was switched off, should be empty. An event that reaches
-                    Grail after its problem has already closed can still open a
-                    new problem, so a very long alert may show a few.
-                  </Paragraph>
-                  <Paragraph>
-                    <Strong>Put the number after a fixed label</Strong> in the
-                    description, for example{" "}
-                    <code>Triggering Value: {"{value}"}</code>, and use a
-                    pattern that starts at that label, such as{" "}
-                    <code>DATA &apos;Triggering Value: &apos;DOUBLE:sa_v</code>.
-                    Do not start the pattern at the first number in the text:
-                    descriptions often contain the threshold as well.
+                    <Strong>your own anomaly detector</Strong>, you have to put
+                    the number into the description yourself, and the detector
+                    needs two things: the number as a single value, and merging
+                    allowed. The example below sets up both for a host CPU
+                    alert.
                   </Paragraph>
                 </Prose>
+
+                <Heading level={4}>
+                  1. Query: turn the series into one number
+                </Heading>
+                <Prose>
+                  <Paragraph>
+                    A <code>timeseries</code> query returns a list of values per
+                    entity. A placeholder in the event text can only insert one
+                    value, so add a field that reduces the list to one number.
+                    Without it the description shows the placeholder text itself
+                    (for example <code>{"{cpu_usage}"}</code>).
+                  </Paragraph>
+                </Prose>
+                <CodeSnippet language="dql">{DETECTOR_QUERY}</CodeSnippet>
+
+                <Heading level={4}>2. Alert condition</Heading>
+                <Prose>
+                  <Paragraph>
+                    Use a static threshold on the series, for example{" "}
+                    <code>ABOVE 90</code>. The threshold only decides when the
+                    detector raises an event at all; the rules in this app
+                    decide its severity from the number.
+                  </Paragraph>
+                </Prose>
+
+                <Heading level={4}>
+                  3. Event template: put the number in the description
+                </Heading>
+                <Prose>
+                  <Paragraph>
+                    In the detector&apos;s event properties, set these. The
+                    number goes after a fixed label, and{" "}
+                    <code>dt.davis.is_merging_allowed</code> lets Davis merge
+                    the events into one problem.
+                  </Paragraph>
+                </Prose>
+                <CodeSnippet language="yaml">{DETECTOR_TEMPLATE}</CodeSnippet>
+                <Prose>
+                  <Paragraph>
+                    Why merging matters: events of type{" "}
+                    <code>CUSTOM_ALERT</code>, which is what a custom detector
+                    creates, are not merged into existing problems by default;
+                    other event types are. The number changes at every
+                    evaluation, so each evaluation is a new event, and without
+                    merging every one opens its own problem. On a test tenant a
+                    detector that evaluated every minute opened a one-minute
+                    problem per minute. With merging on, the events joined one
+                    problem. The default alerting settings are fine.
+                  </Paragraph>
+                </Prose>
+
+                <Heading level={4}>4. Rule in this app</Heading>
+                <Prose>
+                  <Paragraph>
+                    Add a rule for the detector, choose &quot;severity by
+                    value&quot;, and use a pattern that starts at the label:
+                  </Paragraph>
+                </Prose>
+                <CodeSnippet language="log">{DETECTOR_PATTERN}</CodeSnippet>
+                <Prose>
+                  <Paragraph>
+                    Do not start the pattern at the first number in the text:
+                    descriptions often contain the threshold as well. Then set
+                    the bounds, for example 95, 90 and 80 for Critical, High and
+                    Medium. Per-team thresholds are exceptions with label
+                    conditions on the same rule. &quot;Suggest patterns&quot; in
+                    the editor lists real descriptions from your tenant, which
+                    is the quickest way to see what your detector produces.
+                  </Paragraph>
+                </Prose>
+
+                <Heading level={4}>5. Check it</Heading>
+                <Prose>
+                  <Paragraph>
+                    After the detector has fired, look at its events.{" "}
+                    <code>dt.davis.is_merging_allowed</code> should be true,
+                    <code> dt.davis.disable_merging_reason</code> (&quot;Set by
+                    event reporter&quot; when merging was switched off) should
+                    be empty, and the description should hold a real number. An
+                    event that reaches Grail after its problem has already
+                    closed can still open a new problem, so a very long alert
+                    may show a few.
+                  </Paragraph>
+                </Prose>
+                <CodeSnippet language="dql">{DETECTOR_CHECK}</CodeSnippet>
               </Flex>
             </Accordion.SectionContent>
           </Accordion.Section>

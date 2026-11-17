@@ -1,6 +1,12 @@
 import { PageLayout } from "@dynatrace/strato-components/layouts";
-import React, { useEffect } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import { Header } from "./components/Header";
 import { SideNav } from "./components/SideNav";
 import { TopBar } from "./components/TopBar";
@@ -51,10 +57,13 @@ const GATE_KEY = "severity-assistant.profile-gate";
  * chooses what to work on instead of silently editing whichever was used last. */
 const ProfileGate = () => {
   const navigate = useNavigate();
+  // Only the app's own entry ("/"): a link opened in a new tab (a deep link such as the Help notes)
+  // must land where it points, not on Profiles because the tab's session storage is empty.
+  const enteredAtRoot = useRef(useLocation().pathname === "/").current;
   const { registry } = useSharedRegistry();
   const { profiles } = useProfiles();
   useEffect(() => {
-    if (!registry || profiles.length < 2) return;
+    if (!enteredAtRoot || !registry || profiles.length < 2) return;
     try {
       if (window.sessionStorage.getItem(GATE_KEY)) return;
       window.sessionStorage.setItem(GATE_KEY, "1");
@@ -62,7 +71,7 @@ const ProfileGate = () => {
       return;
     }
     navigate("/profiles", { replace: true });
-  }, [registry, profiles.length, navigate]);
+  }, [enteredAtRoot, registry, profiles.length, navigate]);
   return null;
 };
 

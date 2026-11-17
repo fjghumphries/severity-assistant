@@ -7,6 +7,7 @@ import {
 } from "@dynatrace/strato-components/typography";
 import { MessageContainer } from "@dynatrace/strato-components/content";
 import { useHref } from "react-router-dom";
+import { appUrl } from "../../lib/appLinks";
 import {
   TextInput,
   Select,
@@ -515,7 +516,10 @@ export function ThresholdEditor(props: {
     setBounds(next);
   };
 
-  const helpHref = useHref("/help?open=value-rules");
+  // The platform address of the Help section, so the new tab opens the app on that page; the router
+  // path is only the fallback outside the platform.
+  const routerHref = useHref("/help?open=value-rules");
+  const helpHref = appUrl("/help?open=value-rules") || routerHref;
 
   return (
     <Flex flexDirection="column" gap={16}>
@@ -530,7 +534,9 @@ export function ThresholdEditor(props: {
             problem. In the detector&apos;s event template, set{" "}
             <code>dt.davis.is_merging_allowed</code> to <code>true</code>.
             Events written by Davis itself need nothing.{" "}
-            <ExternalLink href={helpHref}>Read the setup notes</ExternalLink>
+            <ExternalLink href={helpHref}>
+              Read the setup notes (opens in a new tab)
+            </ExternalLink>
           </Paragraph>
         </MessageContainer.Description>
       </MessageContainer>

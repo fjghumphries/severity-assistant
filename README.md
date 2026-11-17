@@ -227,46 +227,32 @@ Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
-### 0.2.4 (2026-11-17)
+### 0.2.5 (2026-11-17)
 
-**Fixed**
-- **`event.severity` is now written as a number.** It was written as text (`"4"`), and Davis does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The severity is now written as a number, in live mode and in the fixed severity for events no rule covers; observe mode records `sa.proposed_severity` as a number too. Events set to "Leave severity untouched" keep their own value. **Publish each profile again after upgrading**, because the pipeline already deployed still writes text. Only events processed after that carry the number.
+Covers everything since 0.2.0. The intermediate 0.2.1 to 0.2.4 releases of the same day were folded into this one.
 
-**Changed**
-- **An upgrade that only rewords descriptions no longer looks like pending work.** When the only difference between the deployed pipeline and what the app would build is processor descriptions (the text shown in OpenPipeline), the Pipeline screen and top bar say "Up to date (wording differs)" and explain it. Nothing changes in how events are processed.
-
-### 0.2.3 (2026-11-17)
-
-**Changed**
-- **Simpler wording.** The per-event "system-wide default" is now simply a rule, with exceptions refining it. Buttons are "+ Add rule" and "Set severity"; the severity column is "Severity". The profile option for events no rule covers now reads "Set a severity for them".
-- **Severity from a number is clearer.** The editor says the number is read from `event.description`, shows a worked pattern, and the pattern field is labelled "Pattern applied to event.description (DPL)".
+**When upgrading, publish each profile again.** `event.severity` is now written as a number (see Fixed); the pipeline already deployed still writes text until it is published again, and only events processed afterwards carry the number.
 
 **Added**
-- **Optional bounds for severity by value.** Fill in only the severities you want, for example just Critical at 70, and everything below keeps the rule's other severity or the profile's fallback. Fill in all four to keep the earlier behaviour: values below the lowest get Informational (5). Existing rules are unchanged.
-- **Setup notes for custom anomaly detectors.** Events from a custom detector (type `CUSTOM_ALERT`) are not merged into problems by default, so each new value opens a new problem. The threshold editor now warns about this and links to a new Help section that explains what to set (`dt.davis.is_merging_allowed = true`) and how to check it.
-
-**Fixed**
-- A help sentence about a setting that no longer exists.
-
-### 0.2.2 (2026-11-17)
-
-**Added**
+- **Setup notes for custom anomaly detectors.** Events from a custom detector (type `CUSTOM_ALERT`) are not merged into problems by default, so each new value opens a new problem. The threshold editor warns about it and links (in a new tab) to a Help section with a five-step worked example: reduce the series to one number in the query, put it in the event description, allow merging with `dt.davis.is_merging_allowed = true`, write the rule, check the result.
+- **Optional bounds for severity by value.** Fill in only the severities you want, for example just Critical at 70; everything below keeps the rule's other severity or the profile's fallback. Fill in all four to keep the earlier behaviour (below the lowest value is Informational). Existing rules are unchanged.
 - **Feedback links.** "Report a bug" and "Give feedback" in the top strip open a pre-filled GitHub issue (app version, screen and browser only; no tenant data).
-- **Profile always visible.** The top strip stays at the top while you scroll and is tinted in the profile's own colour.
-- **Labels explained.** Setup and Settings now say what labels are and that they are usually primary tags (business unit, application, tier, team, environment).
-- **Save button on the "Not saved yet" notice** in Settings.
-- **Reset the app can also remove the pipelines and routes** it deployed (ticked by default), so it really returns to a fresh install. The dialog lists what is deleted and what is never touched.
+- **The profile is always visible.** The top strip stays at the top while you scroll and is tinted in the profile's own colour.
+- **Labels explained** in Setup and Settings, with a Save button on the "Not saved yet" notice.
+- **Reset the app can also remove the pipelines and routes** it deployed (ticked by default), so it returns to a fresh install. The dialog lists what is deleted and what is never touched.
+- **Upgrades that only reword descriptions no longer look like pending work.** When the only difference between the deployed pipeline and what the app would build is processor descriptions, the Pipeline screen and top bar say "Up to date (wording differs)" and explain it.
+
+**Changed**
+- **Simpler wording.** The per-event "system-wide default" is now simply a **rule**, with exceptions refining it ("+ Add rule", "Set severity"). The profile option for events no rule covers reads "Set a severity for them".
+- **Severity from a number is clearer.** The editor says the number is read from `event.description` and shows a worked pattern.
 
 **Fixed**
+- **`event.severity` is written as a number.** It was written as text (`"4"`), and Davis does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The number is written in live mode, in the fixed severity for events no rule covers, and in observe mode (`sa.proposed_severity`). Events set to "Leave severity untouched" keep their own value.
+- Event names and label values containing `|` are no longer rejected (a check left over from an old key scheme).
+- A rule with a fixed severity can no longer be saved with "contains" matching, which used to compile as an exact match without saying so. Use "is exactly", or make it an exception, which supports "contains".
 - A new install lands on Setup even when the browser remembers an earlier install, and the "changes not active" banner no longer sits on top of "Setup is not finished".
-- A registry emptied by a reset that could not delete (`{}`) no longer loses its route matcher and roles: missing fields fall back to the fresh-install values; stored values always win.
-- Removed a Help sentence about a "maximum conditions per rule" setting that no longer exists.
-
-### 0.2.1 (2026-11-17)
-
-**Fixed**
-- Event names and label values containing `|` are no longer rejected. The check was left over from the removed composite-key scheme.
-- A fixed-severity default can no longer be saved with "contains" matching. It used to compile as an exact match without saying so. Use "is exactly", or make it an exception, which does support "contains".
+- A registry emptied by a reset that could not delete no longer loses its route matcher and roles.
+- Opening a link to a Help page in a new tab no longer redirects to Profiles.
 
 ### 0.2.0 (2026-11-10)
 
