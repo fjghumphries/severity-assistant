@@ -98,7 +98,7 @@ const FAQ: Faq[] = [
   {
     topic: "Going live and undoing",
     q: "Will problems pick up the severity I set on events?",
-    a: "A problem takes the severity of its most severe event, when it is created or updated. So only problems opened after the route goes live are affected; existing problems and severities already written to events are not changed, and cannot be unwritten. Today the problems and events pipelines run in parallel on the platform, so a severity written by an events pipeline may not reach the problem yet. The event severities this app writes are correct and visible on the Results screen regardless.",
+    a: "A problem takes the severity of its most severe event, when it is created or updated. So only problems opened after the route goes live are affected; existing problems and severities already written to events are not changed, and cannot be unwritten. The app writes the severity as a number, the form Davis expects, and the event severities it writes are visible on the Results screen.",
   },
   {
     topic: "Going live and undoing",

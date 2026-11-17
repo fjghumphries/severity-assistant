@@ -27,6 +27,54 @@ const liveOf = (value: Record<string, unknown>): LivePipeline => ({
   value: { customId: "pipeline_severity_assistant_v1", ...value },
 });
 
+describe("wordingOnly", () => {
+  const liveWith = (p: Processor) =>
+    liveOf({
+      displayName: "Severity Assistant (generated -- do not edit)",
+      metadataList: [],
+      processing: { processors: [p] },
+      davis: { processors: [] },
+      dataExtraction: { processors: [] },
+      metricExtraction: { processors: [] },
+      costAllocation: { processors: [] },
+    });
+
+  test("only a description differs -> wordingOnly", () => {
+    const plan = buildDeployPlan(
+      compiled(proc("sevassist_a")),
+      liveWith({ ...proc("sevassist_a"), description: "old wording" }),
+    );
+    expect(plan.noChange).toBe(false);
+    expect(plan.changed).toEqual(["sevassist_a"]);
+    expect(plan.wordingOnly).toBe(true);
+  });
+
+  test("a script also differs -> not wordingOnly", () => {
+    const plan = buildDeployPlan(
+      compiled(proc("sevassist_a", "fieldsAdd a = 2")),
+      liveWith({ ...proc("sevassist_a"), description: "old wording" }),
+    );
+    expect(plan.wordingOnly).toBe(false);
+  });
+
+  test("a processor is added -> not wordingOnly", () => {
+    const plan = buildDeployPlan(
+      compiled(proc("sevassist_a"), proc("sevassist_b")),
+      liveWith({ ...proc("sevassist_a"), description: "old wording" }),
+    );
+    expect(plan.wordingOnly).toBe(false);
+  });
+
+  test("identical -> noChange, not wordingOnly", () => {
+    const plan = buildDeployPlan(
+      compiled(proc("sevassist_a")),
+      liveWith(proc("sevassist_a")),
+    );
+    expect(plan.noChange).toBe(true);
+    expect(plan.wordingOnly).toBe(false);
+  });
+});
+
 describe("buildDeployPlan", () => {
   test("no live object -> create, everything is added", () => {
     const plan = buildDeployPlan(

@@ -26,6 +26,7 @@ export function buildDiscoveryQuery(window: DiscoveryWindow = "2h"): string {
             app   = coalesce(arrayFirst(primary_tags.landscape), toString(primary_tags.landscape)),
             tier  = coalesce(arrayFirst(primary_tags.tier), toString(primary_tags.tier)),
             stage = coalesce(arrayFirst(primary_tags.stage), toString(primary_tags.stage))
+| fieldsAdd event.severity = toString(event.severity)
 | summarize c = count(), by:{event.name, bu, app, tier, stage, event.severity}
 | sort c desc
 | limit 2000`;

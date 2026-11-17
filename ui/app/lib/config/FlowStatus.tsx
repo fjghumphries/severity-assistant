@@ -171,10 +171,12 @@ export const FlowStatusProvider = ({
       };
     }
     const plan = buildDeployPlan(compiled.pipeline, live);
-    if (plan.noChange) {
+    if (plan.noChange || plan.wordingOnly) {
       return {
         kind: "in-sync",
-        label: "Deployed pipeline is up to date",
+        label: plan.wordingOnly
+          ? "Deployed pipeline is up to date (only wording differs)"
+          : "Deployed pipeline is up to date",
         tone: "success",
         pending: false,
       };

@@ -213,13 +213,18 @@ export const Pipeline = () => {
   }
 
   const activeRules = rules.filter((r) => r.enabled).length;
-  const upToDate = plan?.noChange === true;
+  const upToDate = plan?.noChange === true || plan?.wordingOnly === true;
   const deployStatus: StepState = !compiled.ok
     ? { label: "Blocked by rule errors", tone: "critical" }
     : !liveState.live
       ? { label: "Not created yet", tone: "warning" }
       : upToDate
-        ? { label: "Up to date", tone: "success" }
+        ? {
+            label: plan?.wordingOnly
+              ? "Up to date (wording differs)"
+              : "Up to date",
+            tone: "success",
+          }
         : { label: "Changes pending", tone: "warning" };
   const routeStatus: StepState =
     routeState === "live"

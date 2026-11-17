@@ -115,6 +115,17 @@ export const DeployPanel = (p: Props) => {
           </Paragraph>
         ) : (
           <Flex flexDirection="column" gap={4}>
+            {plan.wordingOnly && (
+              <Paragraph>
+                <Strong>Only the wording differs.</Strong> The{" "}
+                {plan.changed.length} processor
+                {plan.changed.length === 1 ? "" : "s"} below{" "}
+                {plan.changed.length === 1 ? "has" : "have"} a new description
+                (the text shown in OpenPipeline), usually after an app upgrade.
+                Events are processed exactly as before, so you can publish this
+                whenever you like or leave it.
+              </Paragraph>
+            )}
             <Row label="On confirm">
               {creating
                 ? `Creates ${p.registry.pipelineCustomId} with ${p.processorCount} processors`

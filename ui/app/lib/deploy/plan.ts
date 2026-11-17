@@ -94,6 +94,10 @@ export interface DeployPlan {
   foreign: { stage: string; id: string }[];
   /** True when an update would write byte-identical content -- nothing to do. */
   noChange: boolean;
+  /** True when the only differences are processor descriptions (text shown in OpenPipeline), with
+   * the same processors, scripts, matchers, order and settings: events are processed identically,
+   * so this is a cosmetic update, typically after an app upgrade rewords descriptions. */
+  wordingOnly: boolean;
   /** The object to write. */
   merged: LivePipelineValue;
 }
@@ -260,6 +264,30 @@ export function buildDeployPlan(
     removed.length === 0 &&
     canonical(base) === canonical(live.value);
 
+  const withoutDescription = (p: LiveProcessor): LiveProcessor => {
+    const { description: _description, ...rest } = p;
+    void _description;
+    return rest;
+  };
+  const wordingOnly =
+    live !== null &&
+    !noChange &&
+    added.length === 0 &&
+    removed.length === 0 &&
+    changed.length > 0 &&
+    !orderChanged &&
+    otherChanges.length === 0 &&
+    changed.every((id) => {
+      const before = liveOwned.get(id);
+      const after = ownedNew.find((p) => p.id === id);
+      return (
+        before !== undefined &&
+        after !== undefined &&
+        canonical(withoutDescription(before)) ===
+          canonical(withoutDescription(after))
+      );
+    });
+
   return {
     mode: live ? "update" : "create",
     added,
@@ -271,6 +299,7 @@ export function buildDeployPlan(
     unchangedCount,
     foreign,
     noChange,
+    wordingOnly,
     merged: base,
   };
 }

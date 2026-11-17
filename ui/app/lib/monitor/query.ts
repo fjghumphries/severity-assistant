@@ -110,6 +110,9 @@ export function buildMonitorQuery(
             tier  = coalesce(arrayFirst(${f.tier}), toString(${f.tier})),
             stage = coalesce(arrayFirst(${f.stage}), toString(${f.stage})),
             pipeline = coalesce(arrayFirst(dt.openpipeline.pipelines), toString(dt.openpipeline.pipelines))
+| fieldsAdd event.severity = toString(event.severity),
+            sa.original_severity = toString(sa.original_severity),
+            sa.proposed_severity = toString(sa.proposed_severity)
 | summarize c = count(), by:{t = bin(timestamp, ${BUCKET[window].query}), detector = dt.settings.object_id, pipeline, event.name, event.category, bu, app, tier, stage, event.severity, sa.source, sa.original_severity, sa.proposed_severity}
 | limit ${MONITOR_ROW_LIMIT}`;
 }

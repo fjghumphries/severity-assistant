@@ -251,11 +251,15 @@ export function buildFinalCombinerProcessor(
   // event.severity alone, so nothing downstream changes while the effect is compared.
   const target =
     writeMode === "observe" ? "sa.proposed_severity" : "event.severity";
+  // The severity is written as a NUMBER (long), not the string the rules carry internally: Davis
+  // does not pass a string event.severity on to problems (measured: 69 app-processed events held
+  // "4"-style strings, none of 155 problems had a severity). Everything before this step stays a
+  // string; only this last step converts. Events left untouched keep whatever type they arrived with.
   // Markers make the app's effect measurable afterwards (Results screen): which tier decided
   // ("exception" / "default" / "unmatched") and the severity the event arrived with. The original
   // must be captured before event.severity is overwritten below.
   const lines = [
-    "fieldsAdd dt.temp.sev_final = coalesce(dt.temp.sev_exception, dt.temp.sev_default)",
+    "fieldsAdd dt.temp.sev_final = toLong(coalesce(dt.temp.sev_exception, dt.temp.sev_default))",
     "fieldsAdd sa.original_severity = event.severity",
     'fieldsAdd sa.source = if(isNotNull(dt.temp.sev_exception), "exception", else: if(isNotNull(dt.temp.sev_default), "default", else: "unmatched"))',
   ];
@@ -266,7 +270,9 @@ export function buildFinalCombinerProcessor(
     );
   } else {
     const value = dqlStringLiteral(defaultSeverity.value ?? "");
-    lines.push(`fieldsAdd ${target} = coalesce(dt.temp.sev_final, ${value})`);
+    lines.push(
+      `fieldsAdd ${target} = coalesce(dt.temp.sev_final, toLong(${value}))`,
+    );
     if (defaultSeverity.mode === "flag") {
       lines.push("fieldsAdd sa.unmatched = isNull(dt.temp.sev_final)");
     }

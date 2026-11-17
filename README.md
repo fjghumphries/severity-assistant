@@ -43,13 +43,6 @@ It is for Dynatrace admins and operations teams who want severity to mean someth
 becoming OpenPipeline authors. It does not create alerts or change detectors; it sets the severity of
 the events your detectors already raise.
 
-> [!WARNING]
-> **Severity set on events does not yet reliably reach problems.** This app sets the severity of
-> *events*. Problems and events are processed by separate pipelines that currently run in parallel, so a
-> problem can be created before an event's new severity is visible to it. If you use events directly (for
-> example an event feed), this does not affect you. If you send **problems** to an ITSM tool such as
-> ServiceNow, check that the severity arrives before you rely on it.
-
 ### An example
 
 Northwind Bank runs hundreds of applications for dozens of teams, and one alert, *CPU saturation*, fires
@@ -256,6 +249,14 @@ the tenant's processor preview, but none of it has been clicked through in a bro
 Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
+
+### 0.2.4 (2026-11-17)
+
+**Fixed**
+- **`event.severity` is now written as a number.** It was written as text (`"4"`), and Davis does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The severity is now written as a number, in live mode and in the fixed severity for events no rule covers; observe mode records `sa.proposed_severity` as a number too. Events set to "Leave severity untouched" keep their own value. **Publish each profile again after upgrading**, because the pipeline already deployed still writes text. Only events processed after that carry the number.
+
+**Changed**
+- **An upgrade that only rewords descriptions no longer looks like pending work.** When the only difference between the deployed pipeline and what the app would build is processor descriptions (the text shown in OpenPipeline), the Pipeline screen and top bar say "Up to date (wording differs)" and explain it. Nothing changes in how events are processed.
 
 ### 0.2.3 (2026-11-17)
 
