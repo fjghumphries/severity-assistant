@@ -38,23 +38,19 @@ already raise.
 ### An example
 
 Northwind Bank has many applications and teams, and one alert, *CPU saturation*, fires across all of
-them with the same severity.
-
-**Retail Banking** runs the payments gateway: gold tier, in production, where every minute of downtime
-costs money. **Corporate IT** runs internal tools such as HR and expenses, where the same alert can wait
-until morning. Severity runs from **1 (most severe) to 5**. Using the built-in labels (Business Unit, Application, Tier, Stage), their rules read:
+them with the same severity. **Retail Banking** runs the payments gateway: gold tier, in production,
+where every minute of downtime costs money. Severity runs from **1 (most severe) to 5**. Using the
+built-in labels (Business Unit, Application, Tier, Stage), the rules read:
 
 1. **Rule:** CPU saturation is severity **3** for everyone.
-2. *Corporate IT:* **4**. It is an internal tool.
-3. *Retail Banking:* **2**. It matters more here.
-4. *Retail Banking, gold tier, production:* **1**. This is the one worth waking someone for.
-5. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
+2. *Retail Banking:* **2**. It matters more here.
+3. *Retail Banking, gold tier, production:* **1**. This is the one worth waking someone for.
+4. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
 
 The last matching rule wins, so the specific rules go after the general ones. The same alert now arrives
-as **1** on the production payments gateway, **5** on its dev copy, **4** on the HR tool and **3**
-everywhere else, and the app generates the pipeline from those rules. When Retail Banking's SRE team
-wants to own its rules, it can get its own profile with a narrow matcher for its events, which leaves
-Corporate IT's pipeline and everyone else's routes untouched.
+as **1** on the production payments gateway, **5** on its dev copy and **3** everywhere else, and the app
+generates the pipeline from those rules. A team that wants to own its rules can get its own profile with
+a narrow matcher for its events, which leaves everyone else's pipeline and routes untouched.
 
 ## How it works
 
@@ -156,36 +152,17 @@ for the exact request. A custom app's id must start with `my.`; this one does.
 > **Status:** installing this zip through the Registry API has not yet been verified end to end by the
 > maintainers. If it does not work for you, use Option A and please open an issue.
 
-### First launch
+## Try it safely
 
-Open the app from the tenant's app menu. A first visit starts the **Setup** wizard (skippable, and
-re-runnable from Help): which field holds each label, which events the app takes, and what happens to the
-rest. The **Help** page explains the four steps, lists the limits, and answers the questions people ask
-first. A banner on every screen tells you what is still unfinished (setup, rules saved but not deployed,
-deployed but no route, and so on).
+Use a non-production tenant and a narrow test profile.
 
-## How to test
-
-A quick way to try it in your own tenant, with your own labels. No script and no fixed recipe: adapt it
-to what you have. Allow 20 to 30 minutes.
-
-1. **Pick one or two labels you already use**: team, environment, application, cost centre. A label is a
-   business attribute plus the event field that holds its value, so a rule says "Team = payments" and
-   never mentions the field. Map them in the **Setup** wizard (or later in **Settings**, where you can
-   rename the built-in labels or add your own).
-2. **Get an event that always fires and carries those labels.** Any source will do. An anomaly detector
-   with a threshold it always exceeds is the easy route: put your label fields in its event properties
-   and use event type *Custom info*, so no problem is opened.
-3. **Create a profile with a narrow matcher** that selects only that event, for example
+1. **Map one or two labels you already use** (team, environment, application) in the **Setup** wizard.
+2. **Create a profile with a narrow matcher** that selects only your test event, for example
    `matchesValue(event.name, "MYTEST-*")`. The Default profile of a new install takes only events
-   carrying `sa.optin = true`, so it touches nothing until you change it. Never choose "All Davis events"
-   for a test: the app's route goes first and would take every Davis event in the tenant.
-4. **Add rules.** A rule for the event, then an exception on a label (Team = payments), and
-   perhaps a second one combining two labels, to see that the last match wins.
-5. **Publish and enable the route** on the Pipeline screen. Review the diff first. A banner on every screen
-   tells you what is still outstanding.
-6. **Look at the result** on the Results screen, or with this query, which shows what each rule tier did
-   to each event:
+   carrying `sa.optin = true`, so it touches nothing until you change it. Do not choose "All Davis
+   events" for a test: the app's route goes first and would take every Davis event in the tenant.
+3. **Add a rule for the event and an exception on a label**, review the diff, publish, and enable the
+   route. Check the outcome with **Explain an event**, the **Results** screen, or this query:
 
    ```
    fetch dt.davis.events, from:-24h
@@ -195,17 +172,9 @@ to what you have. Allow 20 to 30 minutes.
    | sort events desc
    ```
 
-   Then change a rule, publish again, and watch the next event change.
-
-Worth poking at: **Explain an event** on the Rules screen (does it agree with what happened?), a profile in **Observe** mode (what would it change, with `event.severity` untouched?), reorder the exceptions, remap a label to a different field, change what happens to events
-no rule matches, and key a rule on the detector instead of the event name (we have not verified that
-path end to end).
-
-When you are done: delete or disable the detector, disable the route, and use **Settings > Remove and
-reset** to uninstall the test profile.
-
-**We would like your feedback.** What was confusing, what is missing, and whether this would fit your
-customers' severity needs. Please open an issue on this repository.
+A profile in **Observe** mode records what it would set and leaves `event.severity` alone. When you
+are done, use **Settings > Remove and reset** to remove the test profile. Questions and feedback are
+welcome as issues on this repository.
 
 ## Known limitations
 
@@ -227,66 +196,4 @@ Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
 
-### 0.2.5 (2026-11-17)
-
-Covers everything since 0.2.0. The intermediate 0.2.1 to 0.2.4 releases of the same day were folded into this one.
-
-**When upgrading, publish each profile again.** `event.severity` is now written as a number (see Fixed); the pipeline already deployed still writes text until it is published again, and only events processed afterwards carry the number.
-
-**Added**
-- **Setup notes for custom anomaly detectors.** Events from a custom detector (type `CUSTOM_ALERT`) are not merged into problems by default, so each new value opens a new problem. The threshold editor warns about it and links (in a new tab) to a Help section with a five-step worked example: reduce the series to one number in the query, put it in the event description, allow merging with `dt.davis.is_merging_allowed = true`, write the rule, check the result.
-- **Optional bounds for severity by value.** Fill in only the severities you want, for example just Critical at 70; everything below keeps the rule's other severity or the profile's fallback. Fill in all four to keep the earlier behaviour (below the lowest value is Informational). Existing rules are unchanged.
-- **Feedback links.** "Report a bug" and "Give feedback" in the top strip open a pre-filled GitHub issue (app version, screen and browser only; no tenant data).
-- **The profile is always visible.** The top strip stays at the top while you scroll and is tinted in the profile's own colour.
-- **Labels explained** in Setup and Settings, with a Save button on the "Not saved yet" notice.
-- **Reset the app can also remove the pipelines and routes** it deployed (ticked by default), so it returns to a fresh install. The dialog lists what is deleted and what is never touched.
-- **Upgrades that only reword descriptions no longer look like pending work.** When the only difference between the deployed pipeline and what the app would build is processor descriptions, the Pipeline screen and top bar say "Up to date (wording differs)" and explain it.
-
-**Changed**
-- **Simpler wording.** The per-event "system-wide default" is now simply a **rule**, with exceptions refining it ("+ Add rule", "Set severity"). The profile option for events no rule covers reads "Set a severity for them".
-- **Severity from a number is clearer.** The editor says the number is read from `event.description` and shows a worked pattern.
-
-**Fixed**
-- **`event.severity` is written as a number.** It was written as text (`"4"`), and Davis does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The number is written in live mode, in the fixed severity for events no rule covers, and in observe mode (`sa.proposed_severity`). Events set to "Leave severity untouched" keep their own value.
-- Event names and label values containing `|` are no longer rejected (a check left over from an old key scheme).
-- A rule with a fixed severity can no longer be saved with "contains" matching, which used to compile as an exact match without saying so. Use "is exactly", or make it an exception, which supports "contains".
-- A new install lands on Setup even when the browser remembers an earlier install, and the "changes not active" banner no longer sits on top of "Setup is not finished".
-- A registry emptied by a reset that could not delete no longer loses its route matcher and roles.
-- Opening a link to a Help page in a new tab no longer redirects to Profiles.
-
-### 0.2.0 (2026-11-10)
-
-**Added**
-- **Setup wizard and Help.** A skippable, re-runnable first-run setup (labels, which events the app
-  takes, what happens to unmatched events) and a "Finish setup" banner while no label is usable. The old
-  Getting started page is now Help, with the diagrams and limits collapsed.
-- **Explain this event.** Pick an event and label values from dropdowns and see which rule wins and why.
-- **Observe mode** (per profile). Records `sa.proposed_severity` and leaves `event.severity` alone; the
-  Results screen reads the proposals. Meant for a profile's first go-live.
-- **Rules export and import.** Versioned JSON for labels, profiles and rules, with a validated preview
-  and merge or replace. Importing never publishes by itself.
-- **Label-change safety.** Changing or removing a label lists the rules it would invalidate.
-- **Fill rate for any mapped field** in Settings, not only the four built-in labels.
-- A warning in the top bar when a profile takes every Davis event.
-- Docs: the README now says what the app changes in your tenant, its support status, prerequisites, an
-  example IAM policy, query cost and a verification query. The Help page groups its questions by topic
-  with a filter, documents the new features, and no longer carries the pitch.
-
-**Changed**
-- **Safer default routing.** New installs take only events carrying `sa.optin = true` instead of every
-  Davis event. "All Davis events" is a deliberate choice that needs a tick. Existing installs keep their
-  saved matcher.
-- The exception dialog starts with one condition; the publish confirmation lists one change per line;
-  clearer wording throughout (Publish changes, Which events does this take?). The backup, restore and
-  technical details section on the Pipeline screen is easier to find.
-- Label ordering buttons removed (the order never affected which rule wins).
-
-**Fixed**
-- Max conditions per rule is now derived from the labels and capped at four, the number a rule can
-  store. Values above four were silently truncated before.
-
-### 0.1.0 (2026-11-06)
-
-First packaged release (pre-release). Rules in business terms (defaults plus ordered, label-based
-exceptions), profiles with their own pipeline and route, a rule-level diff before publishing, route
-control, optional backups and restore, the Results screen, impact simulation and uninstall.
+See [CHANGELOG.md](CHANGELOG.md) and the [Releases page](https://github.com/fjghumphries/severity-assistant/releases).
