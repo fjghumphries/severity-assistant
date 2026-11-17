@@ -41,23 +41,27 @@ already raise.
 
 ### An example
 
-Northwind Energy runs hundreds of services, from smart-meter ingestion to outage management to customer
-billing, and Davis raises *Failure rate increase* events on all of them. The description carries the rate
-("Failure rate increased to 42%"), but the event arrives with the same severity whether it is the
-outage-management API or an internal reporting tool. Severity runs from **1 (most severe) to 5**. Using
-the built-in labels (Business Unit, Application, Tier, Stage), the rules read:
+Northwind Energy runs hundreds of services: smart-meter ingestion, outage management, customer billing
+and plenty of internal tools. Whenever one of them starts failing more often, Davis raises a *Failure
+rate increase* event, and its description says by how much: "Failure rate increased to 12%".
 
-1. **Rule, by value:** the severity follows the rate in the event description: **50%** or more is **1**,
-   **20%** is **2**, **10%** is **3**, **5%** is **4**, anything lower is **5**.
-2. *Grid Operations, gold tier, production:* **1** from 10% and **2** from 5%. A failure rate of 10% on
-   the outage-management service is already worth waking someone for.
-3. *Stage = dev, any event:* **5**. Nobody is paged for a test environment, whoever owns it.
+The trouble is that the event looks the same everywhere. A 12% failure rate on the outage-management
+service in the middle of a storm is a call in the night. The same 12% on an internal reporting tool can
+wait until morning, and on a test copy nobody should be bothered at all.
 
-The last matching rule wins, so the specific rules go after the general one. At a 12% failure rate the
-same event now arrives as **1** on the production outage-management API, **3** on the internal reporting
-tool and **5** on its dev copy, and the app generates the pipeline from those rules. A team that wants
-to own its rules, such as the Grid Operations SRE team, can get its own profile with a narrow matcher
-for its events, which leaves everyone else's pipeline and routes untouched.
+With Severity Assistant, the operations team says this once, in plain terms (severity runs from 1, the
+most severe, to 5):
+
+- **The higher the failure rate, the higher the severity**, from 5% up to 50%.
+- **Grid Operations' production services are treated more seriously**: for them, 10% is already the
+  top severity.
+- **Anything in a development environment is the lowest severity**, whoever owns it.
+
+The app turns that into the pipeline. From then on the same event arrives with a severity that fits the
+situation: the top one on outage management, a middle one on the reporting tool, the lowest on the test
+copy. Workflows, notifications and ticket priorities that read the severity follow along. And when the
+Grid Operations SRE team wants to manage its own rules, it can have its own profile for its events,
+leaving everyone else's setup untouched.
 
 ## How it works
 
