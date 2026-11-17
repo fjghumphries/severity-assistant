@@ -23,7 +23,7 @@ Covers everything since 0.2.0. The intermediate 0.2.1 to 0.2.4 releases of the s
 - **Severity from a number is clearer.** The editor says the number is read from `event.description` and shows a worked pattern.
 
 **Fixed**
-- **`event.severity` is written as a number.** It was written as text (`"4"`), and Davis does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The number is written in live mode, in the fixed severity for events no rule covers, and in observe mode (`sa.proposed_severity`). Events set to "Leave severity untouched" keep their own value.
+- **`event.severity` is written as a number.** It was written as text (`"4"`), and Dynatrace does not pass a text severity on to problems: on a test tenant none of the problems carried a severity. The number is written in live mode, in the fixed severity for events no rule covers, and in observe mode (`sa.proposed_severity`). Events set to "Leave severity untouched" keep their own value.
 - Event names and label values containing `|` are no longer rejected (a check left over from an old key scheme).
 - A rule with a fixed severity can no longer be saved with "contains" matching, which used to compile as an exact match without saying so. Use "is exactly", or make it an exception, which supports "contains".
 - A new install lands on Setup even when the browser remembers an earlier install, and the "changes not active" banner no longer sits on top of "Setup is not finished".
@@ -43,14 +43,14 @@ Covers everything since 0.2.0. The intermediate 0.2.1 to 0.2.4 releases of the s
   and merge or replace. Importing never publishes by itself.
 - **Label-change safety.** Changing or removing a label lists the rules it would invalidate.
 - **Fill rate for any mapped field** in Settings, not only the four built-in labels.
-- A warning in the top bar when a profile takes every Davis event.
+- A warning in the top bar when a profile takes every event.
 - Docs: the README now says what the app changes in your tenant, its support status, prerequisites, an
   example IAM policy, query cost and a verification query. The Help page groups its questions by topic
   with a filter, documents the new features, and no longer carries the pitch.
 
 **Changed**
 - **Safer default routing.** New installs take only events carrying `sa.optin = true` instead of every
-  Davis event. "All Davis events" is a deliberate choice that needs a tick. Existing installs keep their
+  event. "All events" is a deliberate choice that needs a tick. Existing installs keep their
   saved matcher.
 - The exception dialog starts with one condition; the publish confirmation lists one change per line;
   clearer wording throughout (Publish changes, Which events does this take?). The backup, restore and

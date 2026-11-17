@@ -1,15 +1,15 @@
 # Severity Assistant
 
-A Dynatrace app for setting **`event.severity`** on Davis events from rules written in business terms.
+A Dynatrace app for setting **`event.severity`** on Dynatrace events from rules written in business terms.
 You say how severe an event is, optionally depending on labels such as business unit, application, tier
-or team; the app generates and maintains the Davis-events OpenPipeline pipeline that applies the rules.
+or team; the app generates and maintains the OpenPipeline pipeline for Dynatrace events that applies the rules.
 
 > **Evaluation build, not a supported Dynatrace product.** Use a non-production tenant first. Questions
 > and feedback go to this repository's issues.
 
 ## What it is for
 
-Davis events and problems carry a severity (`event.severity`), and a problem takes the severity of its
+Dynatrace events and problems carry a severity (`event.severity`), and a problem takes the severity of its
 most severe event. Workflows, notification routing and ITSM integrations (a ServiceNow priority, for
 example) can build on that field.
 
@@ -20,8 +20,8 @@ this app uses. What the app adds is a way to keep the rules as data instead of a
 
 - **Rules in business terms.** "Failure rate increase is 3, but 1 for Grid Operations." The labels are your
   own (business unit, application, tier, stage, team...), mapped to the tenant fields that hold them.
-- **Severity that follows a number.** When an event's description carries a value, such as Davis's
-  "Failure rate increased to 42%", the severity can follow it: pick the value for each severity, and give
+- **Severity that follows a number.** When an event's description carries a value, such as the
+  "Failure rate increased to 42%" that Dynatrace Intelligence writes, the severity can follow it: pick the value for each severity, and give
   a team or label its own bounds with an exception. Events from your own anomaly detectors need a little
   setup first, described on the Help page.
 - **A generated pipeline.** The pipeline is regenerated from the rules each time, so it always matches
@@ -42,7 +42,7 @@ already raise.
 ### An example
 
 Northwind Energy runs hundreds of services: smart-meter ingestion, outage management, customer billing
-and plenty of internal tools. Whenever one of them starts failing more often, Davis raises a *Failure
+and plenty of internal tools. Whenever one of them starts failing more often, Dynatrace Intelligence raises a *Failure
 rate increase* event, and its description says by how much: "Failure rate increased to 12%".
 
 The trouble is that the event looks the same everywhere. A 12% failure rate on the outage-management
@@ -74,7 +74,7 @@ you can skip and run again from Help. Then the four steps:
 2. **Rules.** Per event name or anomaly detector, set a **rule** (the severity for the event), then add **exceptions**
    based on labels. Exceptions are ordered and **the last match wins**. **Explain an event** shows which
    rule wins for a given event and label values, and why.
-3. **Pipeline.** The app compiles the rules into a Davis-events OpenPipeline pipeline, shows a diff
+3. **Pipeline.** The app compiles the rules into an OpenPipeline pipeline for Dynatrace events, shows a diff
    against what is live, publishes it, and manages the route. A profile can be set to **Observe** for its
    first go-live: it records `sa.proposed_severity` and leaves `event.severity` alone.
 4. **Results.** See which severities events actually received, or would receive in observe mode.
@@ -100,7 +100,7 @@ OpenPipeline, for example `exception #2 - set severity 1 for events named "Foo" 
 > **Use a non-production tenant first.** The app writes OpenPipeline settings and, once a route is
 > enabled, changes `event.severity` on events. Severities already written to Grail cannot be un-written.
 
-**You need** a Dynatrace SaaS tenant with Grail and OpenPipeline for Davis events, permission to install
+**You need** a Dynatrace SaaS tenant with Grail and OpenPipeline for events, permission to install
 apps, and for the people using the app, access matching the scopes it requests:
 
 | Scope | Used for |
@@ -121,7 +121,7 @@ ALLOW state:app-states:read, state:app-states:write, state:app-states:delete;
 ALLOW storage:events:read, storage:buckets:read, davis:analyzers:execute;
 ```
 
-**Cost.** Using the app consumes query capacity: it queries Davis events when you open it. The rule
+**Cost.** Using the app consumes query capacity: it queries events when you open it. The rule
 screens and label fill rates look at the last two hours; the Results screen looks at 24 hours by default
 (a few GB scanned on a busy tenant) and offers other windows.
 
@@ -170,8 +170,8 @@ Use a non-production tenant and a narrow test profile.
 1. **Map one or two labels you already use** (team, environment, application) in the **Setup** wizard.
 2. **Create a profile with a narrow matcher** that selects only your test event, for example
    `matchesValue(event.name, "MYTEST-*")`. The Default profile of a new install takes only events
-   carrying `sa.optin = true`, so it touches nothing until you change it. Do not choose "All Davis
-   events" for a test: the app's route goes first and would take every Davis event in the tenant.
+   carrying `sa.optin = true`, so it touches nothing until you change it. Do not choose "All events"
+   for a test: the app's route goes first and would take every event in the tenant.
 3. **Add a rule for the event and an exception on a label**, review the diff, publish, and enable the
    route. Check the outcome with **Explain an event**, the **Results** screen, or this query:
 
@@ -192,9 +192,9 @@ welcome as issues on this repository.
 - **Pipeline groups and bucket assignment** are out of scope, and a profile cannot be a member of a
   pipeline group (the stages the app writes are silently ignored there).
 - **Dynatrace Spaces** is not supported.
-- **Routing is first-match-wins.** Each profile's route goes first. A profile that takes every Davis
+- **Routing is first-match-wins.** Each profile's route goes first. A profile that takes every
   event (matcher `true`) makes routes below it, including other teams' pipelines, stop receiving them.
-  Give a profile a narrow matcher; the app asks you to confirm before you choose "All Davis events".
+  Give a profile a narrow matcher; the app asks you to confirm before you choose "All events".
 - **Limits:** about 990 exceptions per profile (one processor each, against a platform limit of 1,000),
   rules effectively unlimited (they share one lookup table), up to 4 conditions per rule. The app
   refuses to publish something that would not fit rather than writing a partial pipeline. The full list
