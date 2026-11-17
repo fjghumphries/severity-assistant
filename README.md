@@ -9,7 +9,7 @@ or team; the app generates and maintains the OpenPipeline pipeline for Dynatrace
 > **Evaluation build, not a supported Dynatrace product.** Use a non-production tenant first. Questions
 > and feedback go to this repository's issues.
 
-## What it is for
+## Why this app?
 
 Dynatrace events and problems carry a severity (`event.severity`), and a problem takes the severity of its
 most severe event. Workflows, notification routing and ITSM integrations (a ServiceNow priority, for
@@ -47,7 +47,7 @@ Northwind Energy is a large energy company with very different businesses under 
 **Upstream**, **Mobility** and more. They all run on Dynatrace, and the same kinds of alerts fire in all of
 them. A failure rate that climbs to 10% means something different in each. On the trading platform it can
 put real money at risk within minutes. On the EV charging network it is a poor experience for drivers.
-On an internal reporting tool in Upstream it can wait for the morning.
+On an internal reporting tool it can wait for the morning.
 
 Yet an alert arrives with the severity its detector gave it, the same for everyone. So either everything
 looks urgent, or the on-call teams learn to ignore it.
@@ -55,7 +55,7 @@ looks urgent, or the on-call teams learn to ignore it.
 With Severity Assistant, each business tells the app what matters to it, in its own terms:
 
 - **Trading:** a failure rate of 5% is already the top severity.
-- **Mobility:** the charging network and the fuel-card services are high severity from 10%; back-office
+- **Mobility:** the charging network and the fuel-card services are high severity from 10%; non critical back-office
   tools are not.
 - **Upstream:** production sites get the top severity from 20%; office tools stay low.
 - **Anywhere:** test environments are always the lowest severity.
