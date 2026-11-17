@@ -80,7 +80,7 @@ export function buildCandidate(args: BuildArgs): BuildResult {
     return {
       ok: false,
       issues: [
-        "An exception needs at least one label condition (otherwise it is a default).",
+        "An exception needs at least one label condition. For all events of this kind, add a rule instead.",
       ],
     };
   }

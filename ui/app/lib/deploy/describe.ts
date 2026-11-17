@@ -1,12 +1,13 @@
 /**
- * Human-readable summary of a deploy plan: what a save means in terms of rules (default
- * severities, exceptions, threshold defaults) rather than processor ids and DQL. Changes are
+ * Human-readable summary of a deploy plan: what a save means in terms of rules (rule
+ * severities, exceptions, threshold rules) rather than processor ids and DQL. Changes are
  * derived from the processors the compiler emitted (so they reflect exactly what will be
  * written); names, role labels and detector titles are looked up from the rules/registry.
  */
 
 import type { Rule } from "../types/rule";
 import { getConditions } from "../types/rule";
+import { summarizeBounds } from "../rules/bounds";
 import type { RoleRegistry } from "../types/registry";
 import type { DeployPlan, LivePipeline, LiveProcessor } from "./plan";
 import { canonical, isOwned, PIPELINE_STAGES } from "./plan";
@@ -132,7 +133,7 @@ export function describeConditions(rule: Rule, ctx: SummaryContext): string {
 
 export function describeOutcome(rule: Rule): string {
   if (rule.rule_type === "threshold") {
-    return `severity from a number in the event text (bounds ${rule.threshold_bounds ?? "?"})`;
+    return `severity from a number in the event text (${summarizeBounds(rule.threshold_bounds)})`;
   }
   return sev(rule.severity ?? undefined);
 }
@@ -325,9 +326,9 @@ export function describeChangeLine(s: ChangeSummary): string {
       );
     }
   };
-  group("default", s.defaults);
+  group("rule", s.defaults);
   group("exception", s.exceptions);
-  group("threshold default", s.thresholds);
+  group("threshold rule", s.thresholds);
   s.security.forEach((i) => parts.push(`security context ${i.tone}`));
   if (s.internalChanged) parts.push("generated plumbing regenerated");
   if (s.settings.length > 0)
@@ -347,7 +348,7 @@ const TONE_WORD: Record<ChangeTone, string> = {
 };
 
 /**
- * One line per change, for the deploy confirmation: "Add default: CPU (severity 3)",
+ * One line per change, for the deploy confirmation: "Add rule: CPU (severity 3)",
  * "Change exception: Foo -- severity 2 -> 1". `describeChangeLine` stays as the one-sentence form.
  */
 export function describeChangeLines(s: ChangeSummary): string[] {
@@ -365,9 +366,9 @@ export function describeChangeLines(s: ChangeSummary): string[] {
       }
     }
   };
-  add("default", s.defaults);
+  add("rule", s.defaults);
   add("exception", s.exceptions);
-  add("threshold default", s.thresholds);
+  add("threshold rule", s.thresholds);
   add("security context", s.security);
   if (s.internalChanged) lines.push("Regenerate the app's own plumbing");
   for (const setting of s.settings) lines.push(`Pipeline setting: ${setting}`);

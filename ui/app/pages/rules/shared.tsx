@@ -1,6 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { Flex } from "@dynatrace/strato-components/layouts";
-import { Paragraph } from "@dynatrace/strato-components/typography";
+import {
+  ExternalLink,
+  Paragraph,
+  Strong,
+} from "@dynatrace/strato-components/typography";
+import { MessageContainer } from "@dynatrace/strato-components/content";
+import { useHref } from "react-router-dom";
 import {
   TextInput,
   Select,
@@ -25,6 +31,7 @@ import { HelpTip } from "../../components/HelpTip";
 import { severityText } from "../../components/SeverityBadge";
 import { EventNameField } from "./EventPicker";
 import { PatternSuggestions } from "./PatternSuggestions";
+import { boundsProblem, summarizeBounds } from "../../lib/rules/bounds";
 
 /** Sentinel for "(no role condition)" in a Role select -- Select.Option values must be
  * strings, so `null` (the real "no role" state) can't be used as an option value directly. */
@@ -76,9 +83,7 @@ export function targetLabel(
  */
 export function severityColumnText(rule: Rule): string {
   if (rule.rule_type === "threshold") {
-    return rule.threshold_bounds
-      ? `By value (${rule.threshold_bounds})`
-      : "By value (unconfigured)";
+    return `By value (${summarizeBounds(rule.threshold_bounds)})`;
   }
   return rule.severity ?? "-";
 }
@@ -443,19 +448,12 @@ export function formatThresholdBoundsInput(
   return bounds.join(",");
 }
 
-/** Client-side mirror of the compiler-level strictly-descending check (validateRule.ts), so the
- * editor can show immediate feedback rather than waiting for a post-submit rejection. Returns
- * false (not descending / invalid) whenever any slot is blank or non-numeric, same as the
- * server-side check treating that as invalid. */
-export function thresholdBoundsAreDescending(
+/** What is wrong with the four inputs (same check as validateRule), or null when usable: at least
+ * one value, and the ones filled in strictly lower from Critical down to Low. Blank slots are fine. */
+export function thresholdBoundsProblem(
   bounds: ThresholdBoundsInput,
-): boolean {
-  if (bounds.some((b) => b === "" || Number.isNaN(Number(b)))) return false;
-  const nums = bounds.map(Number);
-  for (let i = 1; i < nums.length; i++) {
-    if (!(nums[i] < nums[i - 1])) return false;
-  }
-  return true;
+): string | null {
+  return boundsProblem(formatThresholdBoundsInput(bounds));
 }
 
 const THRESHOLD_SEVERITY_LABELS = [
@@ -495,7 +493,7 @@ export function ThresholdEditor(props: {
   const selectedPreset = THRESHOLD_PATTERN_PRESETS.find(
     (p) => p.id === patternPresetId,
   );
-  const descending = thresholdBoundsAreDescending(bounds);
+  const boundsProblemText = thresholdBoundsProblem(bounds);
   const anyFilledIn = bounds.some((b) => b !== "");
 
   const onSelectPreset = (id: string) => {
@@ -517,10 +515,34 @@ export function ThresholdEditor(props: {
     setBounds(next);
   };
 
+  const helpHref = useHref("/help?open=value-rules");
+
   return (
     <Flex flexDirection="column" gap={16}>
+      <MessageContainer variant="warning">
+        <MessageContainer.Title>
+          Using your own anomaly detector? Allow merging first
+        </MessageContainer.Title>
+        <MessageContainer.Description>
+          <Paragraph>
+            Events from a custom anomaly detector (type CUSTOM_ALERT) are not
+            merged into problems by default, so every new value opens a new
+            problem. In the detector&apos;s event template, set{" "}
+            <code>dt.davis.is_merging_allowed</code> to <code>true</code>.
+            Events written by Davis itself need nothing.{" "}
+            <ExternalLink href={helpHref}>Read the setup notes</ExternalLink>
+          </Paragraph>
+        </MessageContainer.Description>
+      </MessageContainer>
+      <Paragraph>
+        The severity comes from a{" "}
+        <Strong>number inside the event&apos;s description</Strong> (the{" "}
+        <code>event.description</code> field), for example the 12 in &quot;error
+        rate increased to 12%&quot;. Say where that number is, then set which
+        values mean which severity.
+      </Paragraph>
       <Flex flexDirection="column" gap={2}>
-        <Paragraph>Number pattern</Paragraph>
+        <Paragraph>Where is the number in event.description?</Paragraph>
         <Select
           value={patternPresetId}
           onChange={(v) => v && onSelectPreset(v)}
@@ -554,7 +576,7 @@ export function ThresholdEditor(props: {
           parses with, and seeing a working one is the best starting point for writing your own. */}
       <Flex flexDirection="column" gap={2}>
         <Paragraph>
-          DPL pattern
+          Pattern applied to event.description (DPL)
           {patternPresetId === CUSTOM_PATTERN_ID ? "" : " (from the preset)"}
         </Paragraph>
         <TextInput
@@ -565,17 +587,20 @@ export function ThresholdEditor(props: {
         />
         {patternPresetId === CUSTOM_PATTERN_ID ? (
           <Hint>
-            Must capture the number into a field named exactly &quot;sa_v&quot;
-            (e.g. &quot;INT:sa_v&quot;) -- the compiler builds its threshold
-            chain off that fixed name. Everything before it is matched
-            literally, so it must appear verbatim in the event description.
+            Write the text that comes just before the number, then capture the
+            number as <code>INT:sa_v</code>. The name must be exactly sa_v. The
+            text before it is matched literally against event.description, so it
+            must appear there word for word. Example: for &quot;error rate
+            increased to 12%&quot; use{" "}
+            <code>DATA &apos;increased to &apos;INT:sa_v</code>.
           </Hint>
         ) : (
           <Hint>
             This is the pattern the app will compile:{" "}
-            <code>parse event.description, &quot;{parsePattern}&quot;</code>.
-            Pick &quot;Custom&quot; to edit it -- the field keeps this text, so
-            you can use it as a starting point.
+            <code>parse event.description, &quot;{parsePattern}&quot;</code>. It
+            reads the number from the event description. Pick &quot;Custom&quot;
+            to edit it -- the field keeps this text, so you can use it as a
+            starting point.
           </Hint>
         )}
       </Flex>
@@ -590,7 +615,7 @@ export function ThresholdEditor(props: {
               gap={2}
               style={{ minWidth: 160 }}
             >
-              <Paragraph>&ge; this value &rarr; {label}</Paragraph>
+              <Paragraph>&ge; this value &rarr; {label} (optional)</Paragraph>
               <NumberInput
                 value={bounds[i] === "" ? null : Number(bounds[i])}
                 onChange={(v) => setBoundAt(i, v)}
@@ -599,11 +624,13 @@ export function ThresholdEditor(props: {
           ))}
         </Flex>
         <Hint>
-          Below all four values &rarr; Informational (5). Values must be
-          strictly descending.
+          Fill in only the severities you want: for example just Critical at 70,
+          and everything below 70 keeps the severity it would otherwise get.
+          Values must get lower from Critical down to Low. Fill in all four to
+          also give values below the lowest one Informational (5).
         </Hint>
-        {anyFilledIn && !descending && (
-          <ErrorLine message="Boundaries must be strictly descending (e.g. 50, 20, 10, 5) and all four must be filled in." />
+        {anyFilledIn && boundsProblemText && (
+          <ErrorLine message={`Severity by value: ${boundsProblemText}.`} />
         )}
       </Flex>
     </Flex>

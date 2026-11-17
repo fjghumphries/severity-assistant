@@ -352,26 +352,26 @@ export const Settings = () => {
                   Leave severity untouched
                 </Select.Option>
                 <Select.Option value="set">
-                  Set a default severity
+                  Set a severity for them
                 </Select.Option>
                 <Select.Option value="flag">
-                  Set a default and flag it
+                  Set a severity and flag them
                 </Select.Option>
               </Select.Content>
             </Select>
             <Hint>
               What happens to an event that no rule covers. &quot;Leave
               untouched&quot; (recommended) keeps whatever severity Davis
-              already assigned -- possibly none. &quot;Set a default&quot;
-              always writes your chosen severity to uncovered events. &quot;Set
-              a default and flag&quot; does the same but also marks the event so
+              already assigned -- possibly none. &quot;Set a severity&quot;
+              always writes your chosen severity to those events. &quot;Set a
+              severity and flag&quot; does the same but also marks the event so
               you can find every uncovered case later, e.g. in a Notebook query.
             </Hint>
           </Flex>
 
           {draft.defaultSeverity.mode !== "leave" && (
             <Flex flexDirection="column" gap={2} style={{ minWidth: 120 }}>
-              <Paragraph>Default severity (1-5)</Paragraph>
+              <Paragraph>Severity for events with no rule (1-5)</Paragraph>
               <TextInput
                 value={draft.defaultSeverity.value ?? ""}
                 onChange={(value) =>

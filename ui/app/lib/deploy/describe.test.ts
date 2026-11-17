@@ -84,7 +84,7 @@ test("describeChangeLine names rule-level changes", () => {
   ];
   s.defaults = [{ tone: "removed", title: 'Event "Foo"' }];
   expect(describeChangeLine(s)).toBe(
-    '1 default removed (Event "Foo"); 1 exception added (#2 C); 2 exceptions changed (#0 A, #1 B)',
+    '1 rule removed (Event "Foo"); 1 exception added (#2 C); 2 exceptions changed (#0 A, #1 B)',
   );
 });
 

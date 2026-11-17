@@ -60,7 +60,7 @@ test box look alike.
 costs money. **Corporate IT** runs internal tools such as HR and expenses, where the same alert can wait
 until morning. Severity runs from **1 (most severe) to 5**. Using the built-in labels (Business Unit, Application, Tier, Stage), their rules read:
 
-1. **Default:** CPU saturation is severity **3** for everyone.
+1. **Rule:** CPU saturation is severity **3** for everyone.
 2. *Corporate IT:* **4**. It is an internal tool.
 3. *Retail Banking:* **2**. It matters more here.
 4. *Retail Banking, gold tier, production:* **1**. This is the one worth waking someone for.
@@ -80,7 +80,7 @@ you can skip and run again from Help. Then the four steps:
 1. **Profiles.** A profile is an independent pipeline and route with its own rules and its own matcher
    for the events it takes. Every install starts with one, **Default**; add another when a team wants its
    own severities while everyone else is left alone.
-2. **Rules.** Per event name or anomaly detector, set a **default** severity, then add **exceptions**
+2. **Rules.** Per event name or anomaly detector, set a **rule** (the severity for the event), then add **exceptions**
    based on labels. Exceptions are ordered and **the last match wins**. **Explain an event** shows which
    rule wins for a given event and label values, and why.
 3. **Pipeline.** The app compiles the rules into a Davis-events OpenPipeline pipeline, shows a diff
@@ -196,7 +196,7 @@ to what you have. Allow 20 to 30 minutes.
    `matchesValue(event.name, "MYTEST-*")`. The Default profile of a new install takes only events
    carrying `sa.optin = true`, so it touches nothing until you change it. Never choose "All Davis events"
    for a test: the app's route goes first and would take every Davis event in the tenant.
-4. **Add rules.** A default severity for the event, then an exception on a label (Team = payments), and
+4. **Add rules.** A rule for the event, then an exception on a label (Team = payments), and
    perhaps a second one combining two labels, to see that the last match wins.
 5. **Publish and enable the route** on the Pipeline screen. Review the diff first. A banner on every screen
    tells you what is still outstanding.
@@ -214,7 +214,7 @@ to what you have. Allow 20 to 30 minutes.
    Then change a rule, publish again, and watch the next event change.
 
 Worth poking at: **Explain an event** on the Rules screen (does it agree with what happened?), a profile in **Observe** mode (what would it change, with `event.severity` untouched?), reorder the exceptions, remap a label to a different field, change what happens to events
-no rule matches, and key a default on the detector instead of the event name (we have not verified that
+no rule matches, and key a rule on the detector instead of the event name (we have not verified that
 path end to end).
 
 When you are done: delete or disable the detector, disable the route, and use **Settings > Remove and
@@ -233,7 +233,7 @@ customers' severity needs. Please open an issue on this repository.
   event (matcher `true`) makes routes below it, including other teams' pipelines, stop receiving them.
   Give a profile a narrow matcher; the app asks you to confirm before you choose "All Davis events".
 - **Limits:** about 990 exceptions per profile (one processor each, against a platform limit of 1,000),
-  defaults effectively unlimited (they share one lookup table), up to 4 conditions per rule. The app
+  rules effectively unlimited (they share one lookup table), up to 4 conditions per rule. The app
   refuses to publish something that would not fit rather than writing a partial pipeline. The full list
   is on the **Help** page.
 - **Test against a saved, routed pipeline**, not OpenPipeline Preview.
@@ -241,7 +241,7 @@ customers' severity needs. Please open an issue on this repository.
 ## Test status
 
 **Verified on a test tenant, with events sent through the Events API:** label mapping and saving; rules
-(defaults, exceptions, thresholds); compiling and publishing the pipeline; enabling the route;
+(rules, exceptions, thresholds); compiling and publishing the pipeline; enabling the route;
 event-level results; reordering, deleting and remapping, and changing the fallback. Not yet run against
 events raised by a real anomaly detector.
 
@@ -256,6 +256,19 @@ the tenant's processor preview, but none of it has been clicked through in a bro
 Build, test and release instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Changelog
+
+### 0.2.3 (2026-11-17)
+
+**Changed**
+- **Simpler wording.** The per-event "system-wide default" is now simply a rule, with exceptions refining it. Buttons are "+ Add rule" and "Set severity"; the severity column is "Severity". The profile option for events no rule covers now reads "Set a severity for them".
+- **Severity from a number is clearer.** The editor says the number is read from `event.description`, shows a worked pattern, and the pattern field is labelled "Pattern applied to event.description (DPL)".
+
+**Added**
+- **Optional bounds for severity by value.** Fill in only the severities you want, for example just Critical at 70, and everything below keeps the rule's other severity or the profile's fallback. Fill in all four to keep the earlier behaviour: values below the lowest get Informational (5). Existing rules are unchanged.
+- **Setup notes for custom anomaly detectors.** Events from a custom detector (type `CUSTOM_ALERT`) are not merged into problems by default, so each new value opens a new problem. The threshold editor now warns about this and links to a new Help section that explains what to set (`dt.davis.is_merging_allowed = true`) and how to check it.
+
+**Fixed**
+- A help sentence about a setting that no longer exists.
 
 ### 0.2.2 (2026-11-17)
 

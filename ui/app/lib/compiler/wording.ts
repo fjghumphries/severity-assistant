@@ -6,6 +6,7 @@
 
 import { DefaultSeverity, RoleRegistry } from "../types/registry";
 import { getConditions, Rule } from "../types/rule";
+import { allBoundsSet, parseBounds } from "../rules/bounds";
 
 export const DESCRIPTION_PREFIX = "Severity Assistant: ";
 const MAX_CHARS = 500; // validate.ts rejects descriptions over 512
@@ -43,14 +44,17 @@ export function describeWhen(rule: Rule, registry: RoleRegistry): string {
   return parts.length > 0 ? ` when ${parts.join(" and ")}` : "";
 }
 
-/** ">=50 -> 1, >=20 -> 2, >=10 -> 3, >=5 -> 4, else 5" from the rule's bounds. */
+/** ">=50 -> 1, >=20 -> 2, else 5" from the rule's bounds; "else 5" only when all four are set. */
 export function describeBands(rule: Rule): string {
-  const bounds = (rule.threshold_bounds ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter((s) => s !== "");
-  const bands = bounds.map((b, i) => `>=${b} -> ${i + 1}`);
-  return [...bands, "else 5"].join(", ");
+  const bounds = parseBounds(rule.threshold_bounds);
+  const bands = bounds.flatMap((b, i) =>
+    b === null ? [] : [`>=${b} -> ${i + 1}`],
+  );
+  return (
+    allBoundsSet(bounds)
+      ? [...bands, "else 5"]
+      : [...bands, "below that, no severity from this rule"]
+  ).join(", ");
 }
 
 /** What a threshold rule does, for use in a sentence: the number comes from event.description. */

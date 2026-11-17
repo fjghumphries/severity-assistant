@@ -86,7 +86,7 @@ const ExceptionList = ({
   busy,
 }: ExceptionListProps) => {
   if (rules.length === 0)
-    return <Text>No exceptions: this default applies everywhere.</Text>;
+    return <Text>No exceptions: this rule applies everywhere.</Text>;
   return (
     <Flex flexDirection="column" gap={12}>
       {rules.map((r, i) => (
@@ -151,7 +151,7 @@ const ExceptionList = ({
 
 /**
  * Every rule of a profile in one place, arranged by what it is about: one row per event or
- * anomaly detector with its system-wide default and how many label-based exceptions refine it,
+ * anomaly detector with its rule and how many exceptions refine it,
  * expanding to those exceptions. Built for a large rule set -- an event's whole story is on one
  * row instead of split across a defaults list and an exceptions list.
  *
@@ -287,7 +287,7 @@ export const RulesTree = ({
     },
     {
       id: "default",
-      header: "System-wide default",
+      header: "Severity",
       accessor: (row: Row) => row.group.default?.severity ?? "",
       cell: ({ rowData }: { rowData: Row }) =>
         rowData.group.default ? (
@@ -298,7 +298,7 @@ export const RulesTree = ({
           />
         ) : (
           <Chip color="warning" size="condensed">
-            No default
+            No rule
           </Chip>
         ),
     },
@@ -335,7 +335,7 @@ export const RulesTree = ({
                   })
                 }
               >
-                Add default
+                Set severity
               </Button>
             )}
             <Button
@@ -379,14 +379,13 @@ export const RulesTree = ({
           tip={
             <>
               Each row is one event or anomaly detector. Its{" "}
-              <strong>system-wide default</strong> applies to every event of
-              that kind, wherever it comes from;{" "}
-              <strong>label-based exceptions</strong> underneath override it for
-              the events whose labels match, so one team or environment can
-              differ without affecting anyone else.
+              <strong>rule</strong> applies to every event of that kind,
+              wherever it comes from; <strong>exceptions</strong> underneath
+              override it for the events whose labels match, so one team or
+              environment can differ without affecting anyone else.
               <br />
               <br />
-              Each event or detector can have <strong>one</strong> default.
+              Each event or detector can have <strong>one</strong> rule.
               Exceptions apply top to bottom and the last one that matches wins.
               An exception can also leave the event blank and match on labels
               alone.
@@ -401,7 +400,7 @@ export const RulesTree = ({
             disabled={busy}
             onClick={() => setEditor({ kind: "default", editing: null })}
           >
-            + Add default severity
+            + Add rule
           </Button>
           <Button
             variant="emphasized"
@@ -433,7 +432,7 @@ export const RulesTree = ({
           >
             {issuesOnly
               ? "Show everything"
-              : `${summary.orphans} without a default`}
+              : `${summary.orphans} without a rule`}
           </Button>
         )}
       </Flex>
@@ -455,17 +454,17 @@ export const RulesTree = ({
         <Prose>
           <Strong>{summary.orphans}</Strong> event
           {summary.orphans === 1 ? "" : "s"} or detector
-          {summary.orphans === 1 ? "" : "s"} carry exceptions but no system-wide
-          default of their own, so those exceptions only apply to the labels
-          they name and everything else falls back to the profile&apos;s
-          fallback. Use &quot;Add default&quot; on the row to give one.
+          {summary.orphans === 1 ? "" : "s"} carry exceptions but no rule of
+          their own, so those exceptions only apply to the labels they name and
+          everything else falls back to the profile&apos;s fallback. Use
+          &quot;Set severity&quot; on the row to give one.
         </Prose>
       )}
 
       {rows.length === 0 && shown.anyEvent.length === 0 ? (
         <Paragraph>
           {rules.length === 0
-            ? "No rules yet. Add a default severity for the event that fires most often."
+            ? "No rules yet. Add a rule for the event that fires most often."
             : "Nothing matches that search."}
         </Paragraph>
       ) : (
@@ -552,7 +551,7 @@ export const RulesTree = ({
           </Text>
           <Text>
             {deleting && !isException(deleting.rule)
-              ? "Deleting a system-wide default leaves any exceptions on this event in place, but they will then have no default beneath them."
+              ? "Deleting a rule leaves any exceptions on this event in place, but they will then have no rule beneath them."
               : "The exceptions after it keep their relative order."}
           </Text>
           <Text>This takes effect on events only once you deploy.</Text>

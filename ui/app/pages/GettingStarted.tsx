@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Flex, Surface } from "@dynatrace/strato-components/layouts";
 import {
@@ -42,9 +42,9 @@ interface LimitRow {
  */
 const LIMITS: LimitRow[] = [
   {
-    what: "Defaults per profile",
+    what: "Rules per profile",
     limit: "Thousands",
-    note: "Every default shares one lookup table, so they cost no extra processors. The table is capped at 100 KB per pipeline, which is thousands of entries. The Pipeline screen warns from 80 KB.",
+    note: "Every rule shares one lookup table, so they cost no extra processors. The table is capped at 100 KB per pipeline, which is thousands of entries. The Pipeline screen warns from 80 KB.",
   },
   {
     what: "Exceptions per profile",
@@ -52,7 +52,7 @@ const LIMITS: LimitRow[] = [
     note: "One processor each, against a limit of 1,000 processors per pipeline. You are warned from 800. This is the limit most likely to matter.",
   },
   {
-    what: "Threshold defaults per profile",
+    what: "Threshold rules per profile",
     limit: "Counted with exceptions",
     note: "One processor each, out of the same 1,000.",
   },
@@ -93,7 +93,7 @@ const FAQ: Faq[] = [
   {
     topic: "Concepts",
     q: "What happens to events that no rule matches?",
-    a: "Whatever you choose per profile: leave the severity untouched (the default), set a severity, or set one and flag the event with sa.unmatched so you can find the gaps later.",
+    a: "Whatever you choose per profile: leave the severity untouched (the usual choice), set a severity, or set one and flag the event with sa.unmatched so you can find the gaps later.",
   },
   {
     topic: "Going live and undoing",
@@ -112,8 +112,8 @@ const FAQ: Faq[] = [
   },
   {
     topic: "Concepts",
-    q: "How do defaults and exceptions interact?",
-    a: "A default gives one severity to an event or anomaly detector for everyone. An exception overrides it when the event carries particular label values. Exceptions are applied in the order you set, and the last one that matches wins.",
+    q: "How do rules and exceptions interact?",
+    a: "A rule gives one severity to an event or anomaly detector for everyone. An exception overrides it when the event carries particular label values. Exceptions are applied in the order you set, and the last one that matches wins.",
   },
   {
     topic: "Concepts",
@@ -164,39 +164,38 @@ const FAQ: Faq[] = [
         every event the route sends in:
         <br />
         <br />
-        <Strong>1. Default severities.</Strong> All your defaults become one
-        lookup table, read straight off event.name — and a second one off the
-        detector id if you key any defaults on an anomaly detector. The table
-        maps a value to a severity, so one processor covers every default no
-        matter how many you have.
+        <Strong>1. Rules.</Strong> All your rules become one lookup table, read
+        straight off event.name — and a second one off the detector id if you
+        key any rules on an anomaly detector. The table maps a value to a
+        severity, so one processor covers every rule no matter how many you
+        have.
         <br />
-        <Strong>2. Threshold defaults</Strong> (if any). One processor each: it
+        <Strong>2. Threshold rules</Strong> (if any). One processor each: it
         reads a number out of the event text and turns it into a severity. When
-        both kinds of default exist, one more processor merges their results.
+        both kinds of rule exist, one more processor merges their results.
         <br />
-        <Strong>3. Label-based exceptions.</Strong> One processor each, emitted
-        in the order you set. Each one only runs when its conditions match, so
-        the last match wins.
+        <Strong>3. Exceptions.</Strong> One processor each, emitted in the order
+        you set. Each one only runs when its conditions match, so the last match
+        wins.
         <br />
         <Strong>4. Apply.</Strong> The final processor picks the exception
-        result over the default result, writes event.severity, and records what
+        result over the rule result, writes event.severity, and records what
         decided it.
         <br />
         <br />
         Everything in between is held in temporary fields that are discarded
-        before the event is stored. A profile with only defaults is two
-        processors; add 50 exceptions and it is 52. Each processor is described
-        in plain words in OpenPipeline, for example "exception #2 - set severity
-        1 for events named Foo when Business Unit = bu1". The Pipeline screen
-        shows the exact list, and "Technical details" there shows the generated
-        code.
+        before the event is stored. A profile with only rules is two processors;
+        add 50 exceptions and it is 52. Each processor is described in plain
+        words in OpenPipeline, for example "exception #2 - set severity 1 for
+        events named Foo when Business Unit = bu1". The Pipeline screen shows
+        the exact list, and "Technical details" there shows the generated code.
       </>
     ),
   },
   {
     topic: "Reference: what the app builds",
     q: "I deleted every rule, so why does the pipeline still have one processor?",
-    a: 'That last step is the one that writes event.severity. It is always there, because it is what applies whatever the rules decided. With no rules there is nothing to apply, so what it does depends on your "events with no rule" setting: on "Leave severity untouched" it changes nothing, but on "Set a default severity" it stamps that severity on every event the profile takes. The Pipeline screen warns when that is the case.',
+    a: 'That last step is the one that writes event.severity. It is always there, because it is what applies whatever the rules decided. With no rules there is nothing to apply, so what it does depends on your "events with no rule" setting: on "Leave severity untouched" it changes nothing, but on "Set a severity for them" it stamps that severity on every event the profile takes. The Pipeline screen warns when that is the case.',
   },
   {
     topic: "Maintenance and removal",
@@ -211,7 +210,7 @@ const FAQ: Faq[] = [
   {
     topic: "Reference: what the app builds",
     q: "Which fields does it write on an event?",
-    a: "event.severity, plus sa.source (whether a default, an exception, or nothing matched) and sa.original_severity (what the event arrived with) so the Results screen can show what changed.",
+    a: "event.severity, plus sa.source (whether a rule, an exception, or nothing matched) and sa.original_severity (what the event arrived with) so the Results screen can show what changed.",
   },
   {
     topic: "Checking the result",
@@ -221,7 +220,7 @@ const FAQ: Faq[] = [
   {
     topic: "Limits and platform",
     q: "What happens if I hit one of these limits?",
-    a: "You get an error instead of a half-written pipeline. Every budget is checked against the real compiled output before anything is sent to the tenant, so a rule set that would not fit is refused when you publish, with the number that was exceeded. Nothing is written and the live pipeline keeps working. Well before that you get warnings: from 800 processors and from 80 KB of default lookup table.",
+    a: "You get an error instead of a half-written pipeline. Every budget is checked against the real compiled output before anything is sent to the tenant, so a rule set that would not fit is refused when you publish, with the number that was exceeded. Nothing is written and the live pipeline keeps working. Well before that you get warnings: from 800 processors and from 80 KB of rule lookup table.",
   },
   {
     topic: "Limits and platform",
@@ -241,7 +240,7 @@ const FAQ: Faq[] = [
   {
     topic: "Checking the result",
     q: "How do I check what rule decided an event's severity?",
-    a: "Use Explain an event on the Rules screen: choose an event (or detector) and the label values it carries, and it shows which rule wins, which others matched or missed and why. It evaluates event names and labels only; threshold rules read a number from the event text, so it reports them as undecided rather than guessing. For events that already went through the pipeline, sa.source says whether a default, an exception or nothing decided, and sa.original_severity is what the event arrived with.",
+    a: "Use Explain an event on the Rules screen: choose an event (or detector) and the label values it carries, and it shows which rule wins, which others matched or missed and why. It evaluates event names and labels only; threshold rules read a number from the event text, so it reports them as undecided rather than guessing. For events that already went through the pipeline, sa.source says whether a rule, an exception or nothing decided, and sa.original_severity is what the event arrived with.",
   },
   {
     topic: "Going live and undoing",
@@ -284,7 +283,7 @@ const Figure = ({
 
 const STEP_TEXT: Record<number, string> = {
   1: "Pick the profile to work on, or create one for a team that needs its own severities.",
-  2: "Set a system-wide default severity per event, then label-based exceptions where a team differs.",
+  2: "Set a rule per event, then exceptions where a team differs.",
   3: "Review what will change, publish the pipeline, then enable its route to go live.",
   4: "See which events were modified, split by detector, team, severity or pipeline.",
 };
@@ -377,6 +376,14 @@ const InitialSetup = () => {
 /** Why the app exists, how an event flows through it, and the questions users are likely to ask. */
 export const GettingStarted = () => {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const openSection = params.get("open");
+  React.useEffect(() => {
+    if (openSection !== "value-rules") return;
+    document
+      .getElementById("value-rules-anchor")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [openSection]);
   return (
     <Flex flexDirection="column" padding={32} gap={40}>
       <Flex flexDirection="column" gap={12}>
@@ -406,7 +413,7 @@ export const GettingStarted = () => {
 
               <Figure
                 title="What your rules become"
-                caption="Inside the pipeline there are only three ideas. A default gives an event or detector one severity for everyone. Exceptions override it for particular labels, in the order you set. The last step writes the result."
+                caption="Inside the pipeline there are only three ideas. A rule gives an event or detector one severity for everyone. Exceptions override it for particular labels, in the order you set. The last step writes the result."
               >
                 <InsidePipelineDiagram />
               </Figure>
@@ -453,6 +460,67 @@ export const GettingStarted = () => {
         </Flex>
       </Flex>
 
+      <div id="value-rules-anchor">
+        <Accordion
+          defaultExpanded={
+            openSection === "value-rules" ? "value-rules" : undefined
+          }
+        >
+          <Accordion.Section id="value-rules">
+            <Accordion.SectionLabel>
+              Severity from a number: set up your own detector first
+            </Accordion.SectionLabel>
+            <Accordion.SectionContent>
+              <Flex flexDirection="column" gap={12}>
+                <Prose>
+                  <Paragraph>
+                    A rule that takes its severity from a number reads that
+                    number from the event description. Events that Davis writes
+                    itself (error rate, memory, slowdown and so on) need nothing
+                    more. If the event comes from{" "}
+                    <Strong>your own anomaly detector</Strong>, the number is
+                    the value that triggered the alert, and it changes at every
+                    evaluation.
+                  </Paragraph>
+                  <Paragraph>
+                    <Strong>Allow merging in the detector.</Strong> Events of
+                    type <code>CUSTOM_ALERT</code>, which is what a custom
+                    anomaly detector creates, are not merged into existing
+                    problems by default; other event types are. Because the
+                    value changes, each evaluation is a new event, and without
+                    merging every one opens its own problem: on a test tenant a
+                    detector that evaluated every minute opened a one-minute
+                    problem per minute. In the detector&apos;s event template
+                    add the property <code>dt.davis.is_merging_allowed</code>{" "}
+                    with the value <code>true</code> (the &quot;Allow
+                    merge&quot; setting). The events then join one problem. The
+                    default alerting settings are fine.
+                  </Paragraph>
+                  <Paragraph>
+                    <Strong>To check it,</Strong> look at your detector&apos;s
+                    events: <code>dt.davis.is_merging_allowed</code> should be
+                    true, and <code>dt.davis.disable_merging_reason</code>,
+                    which reads &quot;Set by event reporter&quot; when merging
+                    was switched off, should be empty. An event that reaches
+                    Grail after its problem has already closed can still open a
+                    new problem, so a very long alert may show a few.
+                  </Paragraph>
+                  <Paragraph>
+                    <Strong>Put the number after a fixed label</Strong> in the
+                    description, for example{" "}
+                    <code>Triggering Value: {"{value}"}</code>, and use a
+                    pattern that starts at that label, such as{" "}
+                    <code>DATA &apos;Triggering Value: &apos;DOUBLE:sa_v</code>.
+                    Do not start the pattern at the first number in the text:
+                    descriptions often contain the threshold as well.
+                  </Paragraph>
+                </Prose>
+              </Flex>
+            </Accordion.SectionContent>
+          </Accordion.Section>
+        </Accordion>
+      </div>
+
       <Accordion>
         <Accordion.Section id="limits">
           <Accordion.SectionLabel>Reference: limits</Accordion.SectionLabel>
@@ -460,7 +528,7 @@ export const GettingStarted = () => {
             <Flex flexDirection="column" gap={16}>
               <Prose>
                 <Paragraph>
-                  Worth reading before you build a large rule set. Defaults are
+                  Worth reading before you build a large rule set. Rules are
                   effectively unlimited because they share one lookup table;
                   exceptions cost one processor each, so they are the number to
                   watch.

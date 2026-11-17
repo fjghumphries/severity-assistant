@@ -31,7 +31,7 @@ describe("describeChangeLines", () => {
       orderChanged: true,
     };
     expect(describeChangeLines(s)).toEqual([
-      "Add default: CPU -- severity 3",
+      "Add rule: CPU -- severity 3",
       "Change exception: Foo -- severity 2 -> 1; order 1 -> 2",
       "Remove exception: Bar",
       "Pipeline setting: display name",

@@ -117,8 +117,8 @@ const ClearRules = ({
       >
         <Flex flexDirection="column" gap={12}>
           <Text>
-            Deletes every system-wide default and label-based exception in this
-            profile. This cannot be undone.
+            Deletes every rule and exception in this profile. This cannot be
+            undone.
           </Text>
           <Text>
             The profile itself stays: its route matcher, fallback severity and

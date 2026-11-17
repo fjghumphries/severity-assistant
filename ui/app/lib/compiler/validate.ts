@@ -73,12 +73,12 @@ export function validateCompiledPipeline(
   if (lookupBytes > MAX_LOOKUP_BYTES) {
     errors.push({
       field: "budget",
-      message: `Default inline-lookup tables total ${lookupBytes} bytes, over the ${MAX_LOOKUP_BYTES}-byte platform limit.`,
+      message: `Rule inline-lookup tables total ${lookupBytes} bytes, over the ${MAX_LOOKUP_BYTES}-byte platform limit.`,
     });
   } else if (lookupBytes > WARN_LOOKUP_BYTES) {
     warnings.push({
       field: "budget",
-      message: `Default inline-lookup tables total ${lookupBytes} bytes, approaching the ${MAX_LOOKUP_BYTES}-byte limit.`,
+      message: `Rule inline-lookup tables total ${lookupBytes} bytes, approaching the ${MAX_LOOKUP_BYTES}-byte limit.`,
     });
   }
 

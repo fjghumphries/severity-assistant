@@ -55,15 +55,17 @@ export const ProfileEditor = ({ profile: p, onChange }: Props) => (
       >
         <Select.Content>
           <Select.Option value="leave">Leave severity untouched</Select.Option>
-          <Select.Option value="set">Set a default severity</Select.Option>
-          <Select.Option value="flag">Set a default and flag it</Select.Option>
+          <Select.Option value="set">Set a severity for them</Select.Option>
+          <Select.Option value="flag">
+            Set a severity and flag them
+          </Select.Option>
         </Select.Content>
       </Select>
     </Flex>
 
     {p.defaultSeverity.mode !== "leave" && (
       <Flex flexDirection="column" gap={2} style={{ minWidth: 120 }}>
-        <Paragraph>Default severity (1-5)</Paragraph>
+        <Paragraph>Severity for events with no rule (1-5)</Paragraph>
         <TextInput
           value={p.defaultSeverity.value ?? ""}
           onChange={(value) =>

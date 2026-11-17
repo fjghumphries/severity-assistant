@@ -209,14 +209,14 @@ export const InsidePipelineDiagram = () => {
     <Svg
       width={1010}
       height={150}
-      label="Inside the pipeline: a system-wide default, then label-based exceptions, then the severity is applied"
+      label="Inside the pipeline: a rule, then exceptions, then the severity is applied"
     >
       <Box
         x={xs[0]}
         y={y}
         w={w}
         h={h}
-        title="1. System-wide default"
+        title="1. Rule"
         sub={'"CPU Saturation is 3 Medium"'}
       />
       <Box
@@ -224,7 +224,7 @@ export const InsidePipelineDiagram = () => {
         y={y}
         w={w}
         h={h}
-        title="2. Label-based exceptions"
+        title="2. Exceptions"
         sub={'"...but 1 Critical for bu1"'}
       />
       <Box

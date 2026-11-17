@@ -290,10 +290,10 @@ export const Setup = () => {
           <Flex flexDirection="column" gap={12}>
             <Heading level={3}>Setup saved</Heading>
             <Paragraph>
-              Next, add a default severity for the events you care about most.
-              Nothing reaches an event until you publish and enable the route.
-              You can change any of this later in Settings or on the Teams
-              screen, and run this setup again from Help.
+              Next, add a rule for the events you care about most. Nothing
+              reaches an event until you publish and enable the route. You can
+              change any of this later in Settings or on the Teams screen, and
+              run this setup again from Help.
             </Paragraph>
             <Flex>
               <Button variant="accent" onClick={() => navigate("/rules")}>

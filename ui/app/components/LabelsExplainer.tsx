@@ -31,8 +31,8 @@ export const LabelsExplainer = () => (
       rename them or add your own (for example Team) in Settings.
     </Paragraph>
     <Text>
-      Labels are optional for defaults, which give an event one severity for
-      everyone. You need them only for exceptions, which override a default for
+      Labels are optional for rules, which give an event one severity for
+      everyone. You need them only for exceptions, which override a rule for
       events carrying particular label values. Fill rate shows how many recent
       events carry the field: a low value means rules on that label will rarely
       match.

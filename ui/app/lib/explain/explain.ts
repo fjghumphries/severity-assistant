@@ -159,7 +159,7 @@ export function explain(
     source === "exception"
       ? `Severity ${severity}: the exception "${winner?.name}" wins.`
       : source === "default"
-        ? `Severity ${severity}: the default "${winner?.name}" applies, and no exception matches.`
+        ? `Severity ${severity}: the rule "${winner?.name}" applies, and no exception matches.`
         : severity === null
           ? "No rule matches, so the event keeps the severity it arrived with."
           : `No rule matches, so it gets the "events with no rule" severity ${severity}.`;

@@ -133,17 +133,17 @@ export const Rules = () => {
     <Flex flexDirection="column" padding={32} gap={32}>
       <PageHeader
         title="Rules"
-        subtitle="Decide the severity each event gets: a system-wide default per event, then label-based exceptions."
+        subtitle="Decide the severity each event gets: a rule per event, then exceptions where labels differ."
         chips={[
           {
-            label: `${counts.defaults} default${counts.defaults === 1 ? "" : "s"}, ${counts.exceptions} exception${counts.exceptions === 1 ? "" : "s"}`,
+            label: `${counts.defaults} rule${counts.defaults === 1 ? "" : "s"}, ${counts.exceptions} exception${counts.exceptions === 1 ? "" : "s"}`,
             tone:
               counts.defaults + counts.exceptions > 0 ? "success" : "warning",
           },
         ]}
         note={
           rules.length === 0
-            ? "Start with a default: pick the event that fires most often and give it a severity."
+            ? "Start with a rule: pick the event that fires most often and give it a severity."
             : undefined
         }
         action={

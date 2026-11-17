@@ -21,7 +21,7 @@ export interface TargetGroup {
   kind: TargetKind;
   /** The event name or the detector's objectId. */
   target: string;
-  /** The system-wide default for this target, or null when only exceptions exist (an orphan). */
+  /** The rule for this target, or null when only exceptions exist (an orphan). */
   default: Rule | null;
   /** Exceptions on this target in their global order, which is also their precedence: the last
    * matching one wins (D20). */

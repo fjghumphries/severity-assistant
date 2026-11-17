@@ -64,7 +64,7 @@ interface Props {
 }
 
 /**
- * One editor for both kinds of rule. A system-wide default and a label-based exception differ in
+ * One editor for both kinds of rule. A rule and an exception differ in
  * only two ways -- the exception has label conditions, and takes a place in the exception order --
  * so the form is shared and `kind` switches those two things.
  *
@@ -186,7 +186,7 @@ export const RuleEditorModal = ({
     if (await run(result.next)) onClose();
   };
 
-  const noun = isDefault ? "system-wide default" : "label-based exception";
+  const noun = isDefault ? "rule" : "exception";
 
   return (
     <Modal
@@ -243,7 +243,7 @@ export const RuleEditorModal = ({
           usedEventNames={usedEventNames}
           eventNameBlankHint={
             isDefault
-              ? "Required for a default -- a default always targets one event or detector."
+              ? "Required for a rule -- a rule always targets one event or detector."
               : "Optional -- leave blank to apply across every event, constrained only by the conditions below."
           }
         />

@@ -224,7 +224,7 @@ export const NewProfileWizard = ({ registry, onCreate, onClose }: Props) => {
                     Leave its severity untouched
                   </Select.Option>
                   <Select.Option value="set">
-                    Set a default severity
+                    Set a severity for them
                   </Select.Option>
                 </Select.Content>
               </Select>

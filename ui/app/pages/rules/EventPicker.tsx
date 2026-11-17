@@ -128,8 +128,8 @@ export const EventPickerModal = ({
       <Flex flexDirection="column" gap={12}>
         <Text>
           Event names seen in the last 2 hours. &quot;Already targeted&quot;
-          means another rule in this profile already uses that name: two
-          defaults cannot target the same event.
+          means another rule in this profile already uses that name: two rules
+          cannot target the same event.
         </Text>
         <Flex gap={12} alignItems="center" flexWrap="wrap">
           <TextInput

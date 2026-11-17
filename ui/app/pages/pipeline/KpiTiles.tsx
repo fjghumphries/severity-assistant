@@ -27,9 +27,9 @@ const AREAS: {
   >;
   label: string;
 }[] = [
-  { key: "defaults", label: "System-wide default" },
-  { key: "exceptions", label: "Label-based exception" },
-  { key: "thresholds", label: "Threshold default" },
+  { key: "defaults", label: "Rule" },
+  { key: "exceptions", label: "Exception" },
+  { key: "thresholds", label: "Threshold rule" },
   { key: "security", label: "Security context" },
 ];
 

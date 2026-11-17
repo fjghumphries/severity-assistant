@@ -4,6 +4,8 @@ import { Flex } from "@dynatrace/strato-components/layouts";
 import { Text } from "@dynatrace/strato-components/typography";
 import { Chip } from "@dynatrace/strato-components/content";
 
+import { summarizeBounds } from "../lib/rules/bounds";
+
 type Tone = "neutral" | "primary" | "success" | "warning" | "critical";
 
 /** 1 is the most severe. The colour carries the meaning, so a table of severities is scannable
@@ -69,9 +71,7 @@ export const RuleSeverity = ({
   if (ruleType === "threshold") {
     return (
       <Chip color="primary" size="condensed">
-        {thresholdBounds
-          ? `By value (${thresholdBounds})`
-          : "By value (unconfigured)"}
+        {`By value (${summarizeBounds(thresholdBounds)})`}
       </Chip>
     );
   }

@@ -56,7 +56,7 @@ test("target, conditions and bands read in plain language", () => {
 
 test("processor descriptions say what the processor does", () => {
   expect(buildDefaultThresholdProcessor(threshold, registry).description).toBe(
-    'Severity Assistant: set default severity for events named "SATEST-THRESHOLD", from a number in the event description (>=50 -> 1, >=20 -> 2, >=10 -> 3, >=5 -> 4, else 5)',
+    'Severity Assistant: set severity for events named "SATEST-THRESHOLD", from a number in the event description (>=50 -> 1, >=20 -> 2, >=10 -> 3, >=5 -> 4, else 5)',
   );
   const exc = setConditions(
     {

@@ -158,7 +158,7 @@ export const ExplainModal = ({
 
         {roles.length === 0 ? (
           <Paragraph>
-            No labels are set up yet, so only defaults can apply.
+            No labels are set up yet, so only rules can apply.
           </Paragraph>
         ) : (
           <Flex gap={16} flexWrap="wrap">
@@ -246,7 +246,7 @@ export const ExplainModal = ({
               )}
               {result.default && (
                 <Paragraph>
-                  Default: &quot;{result.default.rule.name}&quot; gives{" "}
+                  Rule: &quot;{result.default.rule.name}&quot; gives{" "}
                   {severityText(result.default.rule.severity)}.
                 </Paragraph>
               )}

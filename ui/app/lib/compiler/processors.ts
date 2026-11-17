@@ -16,6 +16,7 @@ import {
   ruleTarget,
   TargetFamily,
 } from "./keys";
+import { allBoundsSet, parseBounds } from "../rules/bounds";
 import { Processor } from "./types";
 import {
   describeBands,
@@ -106,14 +107,15 @@ export function groupDefaultsByTarget(defaultsKeyed: Rule[]): DefaultGroup[] {
  * the user's DPL pattern to discover the capture name itself.
  */
 export function buildThresholdScript(rule: Rule, targetField: string): string {
-  const bounds = (rule.threshold_bounds ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .map(Number);
+  const bounds = parseBounds(rule.threshold_bounds);
   const severities = ["1", "2", "3", "4"];
 
-  let chain = '"5"';
+  // Below every bound: Informational (5) only when all four severities are set (the original
+  // behaviour); with any left blank the rule gives no severity there, so the target keeps what it
+  // had (an earlier exception, or nothing so the default / fallback applies).
+  let chain = allBoundsSet(bounds) ? '"5"' : targetField;
   for (let i = bounds.length - 1; i >= 0; i--) {
+    if (bounds[i] === null) continue;
     chain = `if(${SA_CAPTURE} >= ${bounds[i]}, "${severities[i]}", else: ${chain})`;
   }
   const assign = `if(isNull(${SA_CAPTURE}), ${targetField}, else: ${chain})`;
@@ -133,7 +135,7 @@ export function buildDefaultThresholdProcessor(
   return dqlProcessor(
     `sevassist_threshold_${rule.rule_id}`,
     withPrefix(
-      `set default severity for ${describeTarget(rule)}${describeWhen(rule, registry)}, ${THRESHOLD_SOURCE} (${describeBands(rule)})`,
+      `set severity for ${describeTarget(rule)}${describeWhen(rule, registry)}, ${THRESHOLD_SOURCE} (${describeBands(rule)})`,
     ),
     buildMatcher(rule, registry),
     buildThresholdScript(rule, destinationField),
@@ -180,7 +182,7 @@ export function buildInlineLookupProcessor(
   return lookupProcessor(
     `sevassist_default_by_${idBy}`,
     withPrefix(
-      `set default severity by ${by} for ${n} rule${n === 1 ? "" : "s"} (${shown}${n > 3 ? `, +${n - 3} more` : ""})`,
+      `set severity by ${by} for ${n} rule${n === 1 ? "" : "s"} (${shown}${n > 3 ? `, +${n - 3} more` : ""})`,
     ),
     group.field,
     destinationField,
@@ -196,7 +198,7 @@ export function buildDefaultCombinerProcessor(): Processor {
   return dqlProcessor(
     "sevassist_default_combine",
     withPrefix(
-      "pick the default severity: the event-name or detector match, otherwise the threshold default",
+      "pick the rule severity: the event-name or detector match, otherwise the threshold rule",
     ),
     "true",
     "fieldsAdd dt.temp.sev_default = coalesce(dt.temp.sev_default_keyed, dt.temp.sev_default_num)",
@@ -274,8 +276,8 @@ export function buildFinalCombinerProcessor(
     "sevassist_apply_severity",
     withPrefix(
       writeMode === "observe"
-        ? `OBSERVE ONLY: record in sa.proposed_severity what event.severity would be (last matching exception, otherwise the default), without changing event.severity; events matching neither ${describeFallback(defaultSeverity)}`
-        : `write event.severity from the last matching exception, otherwise the default; events matching neither ${describeFallback(defaultSeverity)}`,
+        ? `OBSERVE ONLY: record in sa.proposed_severity what event.severity would be (last matching exception, otherwise the rule), without changing event.severity; events matching neither ${describeFallback(defaultSeverity)}`
+        : `write event.severity from the last matching exception, otherwise the rule; events matching neither ${describeFallback(defaultSeverity)}`,
     ),
     "true",
     lines.join("\n| "),

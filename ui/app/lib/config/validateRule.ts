@@ -1,4 +1,5 @@
 import { getConditions, isException, Rule } from "../types/rule";
+import { boundsProblem } from "../rules/bounds";
 import { RoleRegistry } from "../types/registry";
 
 export interface ValidationIssue {
@@ -66,7 +67,7 @@ export function validateRule(
   if (!exceptionByConditions && rule.order !== null) {
     issues.push({
       field: "order",
-      message: `${prefix}: only exceptions are ordered (D20) -- a default (zero conditions) must not set an order.`,
+      message: `${prefix}: only exceptions are ordered (D20) -- a rule (zero conditions) must not set an order.`,
     });
   }
 
@@ -113,7 +114,7 @@ export function validateRule(
     // without this check the rule would silently match only the literal text.
     issues.push({
       field: "event_name_match",
-      message: `${prefix}: "contains" is not supported on a default with a fixed severity (it would only match the exact name). Use "is exactly", or add it as an exception.`,
+      message: `${prefix}: "contains" is not supported on a rule with a fixed severity (it would only match the exact name). Use "is exactly", or add it as an exception.`,
     });
   }
 
@@ -143,28 +144,12 @@ export function validateRule(
         message: `${prefix}: threshold rules must not set a fixed severity.`,
       });
     }
-    const bounds = (rule.threshold_bounds ?? "")
-      .split(",")
-      .map((s) => s.trim());
-    if (
-      bounds.length !== 4 ||
-      bounds.some((b) => b === "" || Number.isNaN(Number(b)))
-    ) {
+    const problem = boundsProblem(rule.threshold_bounds);
+    if (problem) {
       issues.push({
         field: "threshold_bounds",
-        message: `${prefix}: threshold_bounds must be exactly 4 comma-separated numbers.`,
+        message: `${prefix}: severity by value: ${problem} (got "${rule.threshold_bounds ?? ""}").`,
       });
-    } else {
-      const nums = bounds.map(Number);
-      for (let i = 1; i < nums.length; i++) {
-        if (nums[i] >= nums[i - 1]) {
-          issues.push({
-            field: "threshold_bounds",
-            message: `${prefix}: threshold_bounds must be strictly descending (got "${rule.threshold_bounds}").`,
-          });
-          break;
-        }
-      }
     }
   }
 
@@ -232,7 +217,7 @@ export function findDuplicateDefaultTargets(rules: Rule[]): ValidationIssue[] {
     if (existing) {
       issues.push({
         field: "conditions",
-        message: `"${rule.name}" and "${existing}" are both Defaults for the same target (${target}) -- Defaults must have a unique target (D19).`,
+        message: `"${rule.name}" and "${existing}" are both rules for the same target (${target}) -- rules must have a unique target (D19).`,
       });
     } else {
       seen.set(target, rule.name);
