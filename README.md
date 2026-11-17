@@ -4,6 +4,8 @@ A Dynatrace app for setting **`event.severity`** on Dynatrace events from rules 
 You say how severe an event is, optionally depending on labels such as business unit, application, tier
 or team; the app generates and maintains the OpenPipeline pipeline for Dynatrace events that applies the rules.
 
+![The Rules screen: one row per event or anomaly detector with its severity, fixed or by value, and its exceptions underneath](rules_screenshot.png)
+
 > **Evaluation build, not a supported Dynatrace product.** Use a non-production tenant first. Questions
 > and feedback go to this repository's issues.
 
