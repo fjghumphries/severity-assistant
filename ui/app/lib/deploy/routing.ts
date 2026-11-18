@@ -64,7 +64,7 @@ export function planRoute(
   const shadowing = action === "enable" ? others.filter((e) => e.enabled) : [];
   if (action === "enable" && isCatchAll(matcher) && shadowing.length > 0) {
     warnings.push(
-      `Our catch-all route will take every Davis event; ${shadowing.length} enabled route(s) below it will stop receiving anything.`,
+      `Our catch-all route will take every event; ${shadowing.length} enabled route(s) below it will stop receiving anything.`,
     );
   }
   const otherManaged = others.filter(
@@ -102,6 +102,40 @@ export function planRemoveRoute(
 ): { entries: RoutingEntry[]; hadRoute: boolean } {
   const entries = current.filter((e) => e.pipelineId !== pipelineObjectId);
   return { entries, hadRoute: entries.length !== current.length };
+}
+
+/** The route states the UI shows. `outdated` is a live route whose matcher is no longer the profile's. */
+export type RouteStateName =
+  "absent" | "disabled" | "shadowed" | "live" | "outdated";
+
+const normalizeMatcher = (m: string) => m.trim().replace(/\s+/g, " ");
+
+/**
+ * Like `describeRouteState`, but also compares the live route's matcher with the profile's current
+ * one. A route written for an earlier matcher keeps taking that matcher's events until it is
+ * rewritten, so a live route with a different matcher is `outdated` (a shadowed one stays shadowed,
+ * the more serious problem). `liveMatcher` is what the route takes now.
+ */
+export function describeRouteStateFor(
+  current: RoutingEntry[],
+  pipelineObjectId: string,
+  matcher: string,
+): {
+  state: RouteStateName;
+  shadowedBy: RoutingEntry[];
+  liveMatcher: string | null;
+} {
+  const base = describeRouteState(current, pipelineObjectId);
+  const ours = current.find((e) => e.pipelineId === pipelineObjectId);
+  const liveMatcher = ours ? ours.matcher : null;
+  if (
+    base.state === "live" &&
+    liveMatcher !== null &&
+    normalizeMatcher(liveMatcher) !== normalizeMatcher(matcher)
+  ) {
+    return { state: "outdated", shadowedBy: [], liveMatcher };
+  }
+  return { ...base, liveMatcher };
 }
 
 /** Diagnostic for the CURRENT state (before any write): is our entry live and reachable? */

@@ -152,7 +152,7 @@ export const RestoreSection = ({ kind, customId, live, onRestored }: Props) => {
         <Text>
           {kind === "pipeline"
             ? "What it covers: the severity logic this app generates (the pipeline's processors). Not your rules (kept in the app) and not routing. Saved before a deploy."
-            : "What it covers: the tenant-wide list that decides which Davis events go to which pipeline, including routes this app does not own. Saved before enabling or disabling the route."}
+            : "What it covers: the tenant-wide list that decides which events go to which pipeline, including routes this app does not own. Saved before enabling or disabling the route."}
         </Text>
         <input
           ref={fileRef}
@@ -215,8 +215,8 @@ export const RestoreSection = ({ kind, customId, live, onRestored }: Props) => {
                   </Text>
                 ))}
                 <Text>
-                  Restoring routing changes which pipeline receives live Davis
-                  events right away.
+                  Restoring routing changes which pipeline receives live events
+                  right away.
                 </Text>
               </>
             )}

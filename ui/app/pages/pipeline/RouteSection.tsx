@@ -18,9 +18,10 @@ import {
 } from "../../lib/deploy/pipelineApi";
 import type { LiveRouting } from "../../lib/deploy/pipelineApi";
 import {
-  describeRouteState,
+  describeRouteStateFor,
   planRoute,
   RouteAction,
+  RouteStateName,
 } from "../../lib/deploy/routing";
 import { Intro } from "../../components/HelpTip";
 
@@ -33,7 +34,7 @@ interface Props {
   /** Route description for this profile; makes the route recognisable as app-managed. */
   routeDescription?: string;
   /** Reports the route state upward so the page can show it in the process overview. */
-  onState?: (state: "absent" | "disabled" | "shadowed" | "live" | null) => void;
+  onState?: (state: RouteStateName | null) => void;
 }
 
 const STATE_TEXT = {
@@ -42,7 +43,9 @@ const STATE_TEXT = {
     "The app route exists but is disabled: the pipeline receives no events.",
   shadowed:
     "The app route is enabled but an enabled catch-all above it takes every event first.",
-  live: "The app route is live: the pipeline sets event.severity on matching Davis events.",
+  live: "The app route is live: the pipeline sets event.severity on matching events.",
+  outdated:
+    "The app route is live, but its matcher is out of date: it still takes the events of the previous matcher.",
 } as const;
 
 /**
@@ -82,9 +85,13 @@ export const RouteSection = ({
   const state = useMemo(
     () =>
       routing
-        ? describeRouteState(routing.value.routingEntries, pipelineObjectId)
+        ? describeRouteStateFor(
+            routing.value.routingEntries,
+            pipelineObjectId,
+            matcher,
+          )
         : null,
-    [routing, pipelineObjectId],
+    [routing, pipelineObjectId, matcher],
   );
   const stateName = state?.state ?? null;
   useEffect(() => {
@@ -114,7 +121,11 @@ export const RouteSection = ({
         downloadBackup(makeBackup("routing", ROUTING_SCHEMA_ID, routing));
       await writeRouting(routing, plan.entries);
       setMessage(
-        plan.action === "enable" ? "Route enabled." : "Route disabled.",
+        plan.action === "disable"
+          ? "Route disabled."
+          : stateName === "outdated"
+            ? "Route updated."
+            : "Route enabled.",
       );
     } catch (e) {
       setMessage(
@@ -133,15 +144,14 @@ export const RouteSection = ({
       <Intro
         tip={
           <>
-            Routing decides which Davis events go through this pipeline.
-            Enabling it is what makes severities change. The route goes first
-            and takes every event its matcher matches, so other routes stop
-            receiving them: if you need your own Davis event routing, this app
-            is not for you.
+            Routing decides which events go through this pipeline. Enabling it
+            is what makes severities change. The route goes first and takes
+            every event its matcher matches, so other routes stop receiving
+            them: if you need your own event routing, this app is not for you.
           </>
         }
       >
-        Routing decides which Davis events use this pipeline.
+        Routing decides which events use this pipeline.
       </Intro>
       {error && (
         <Flex alignItems="center" gap={8}>
@@ -153,6 +163,13 @@ export const RouteSection = ({
         </Flex>
       )}
       {state && <Paragraph>{STATE_TEXT[state.state]}</Paragraph>}
+      {state?.state === "outdated" && (
+        <Paragraph>
+          The route takes <code>{state.liveMatcher?.trim()}</code>; this profile
+          now takes <code>{matcher.trim()}</code>. Update the route to apply the
+          new matcher.
+        </Paragraph>
+      )}
       {state?.shadowedBy.map((e) => (
         <Paragraph key={e.pipelineId}>
           Shadowed by: <Strong>{e.description}</Strong> (matcher{" "}
@@ -204,7 +221,9 @@ export const RouteSection = ({
               }
               onClick={() => setPending("enable")}
             >
-              Enable route...
+              {state?.state === "outdated"
+                ? "Update route..."
+                : "Enable route..."}
             </Button>
             <Button
               variant="emphasized"

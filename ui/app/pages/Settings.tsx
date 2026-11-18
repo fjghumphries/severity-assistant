@@ -233,8 +233,8 @@ export const Settings = () => {
               Labels are the business attributes your rules can match on, such
               as a team, an application or an environment. Say which tenant
               field or tag holds the value of each label; fill rate is computed
-              from the last 2 hours of Davis events, so you can tell which
-              fields are actually populated. For example, mapping {l0} to{" "}
+              from the last 2 hours of events, so you can tell which fields are
+              actually populated. For example, mapping {l0} to{" "}
               <code>{firstField}</code> lets a rule say &quot;{l0} =
               &lt;value&gt;&quot; to match events carrying that value.
             </>
@@ -361,11 +361,12 @@ export const Settings = () => {
             </Select>
             <Hint>
               What happens to an event that no rule covers. &quot;Leave
-              untouched&quot; (recommended) keeps whatever severity Davis
-              already assigned -- possibly none. &quot;Set a severity&quot;
-              always writes your chosen severity to those events. &quot;Set a
-              severity and flag&quot; does the same but also marks the event so
-              you can find every uncovered case later, e.g. in a Notebook query.
+              untouched&quot; (recommended) keeps whatever severity Dynatrace
+              Intelligence already assigned -- possibly none. &quot;Set a
+              severity&quot; always writes your chosen severity to those events.
+              &quot;Set a severity and flag&quot; does the same but also marks
+              the event so you can find every uncovered case later, e.g. in a
+              Notebook query.
             </Hint>
           </Flex>
 

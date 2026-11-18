@@ -125,6 +125,9 @@ export const RuleEditorModal = ({
     return existing.length > 0 ? existing : [emptyCondition()];
   });
   const [formIssues, setFormIssues] = useState<string[]>([]);
+  // Set by the threshold editor while its pattern reads nothing from a tested description.
+  const [patternBlock, setPatternBlock] = useState<string | null>(null);
+  const blockedByPattern = ruleType === "threshold" && patternBlock !== null;
 
   const { saveState, saveError, run } = useSaveHandler(persist);
 
@@ -199,7 +202,7 @@ export const RuleEditorModal = ({
           <Button
             variant="accent"
             onClick={() => void submit()}
-            disabled={saveState === "saving"}
+            disabled={saveState === "saving" || blockedByPattern}
           >
             {saveState === "saving"
               ? "Saving..."
@@ -314,6 +317,8 @@ export const RuleEditorModal = ({
         ) : (
           <ThresholdEditor
             eventName={matchMode === "event" ? eventName : null}
+            detectorId={matchMode === "detector" ? detectorId : null}
+            onPatternBlock={setPatternBlock}
             patternPresetId={patternPresetId}
             setPatternPresetId={setPatternPresetId}
             parsePattern={parsePattern}

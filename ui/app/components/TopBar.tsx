@@ -111,7 +111,7 @@ export const TopBar = () => {
         {matcher !== undefined && (
           <Text>
             <Text textStyle="base-emphasized">This profile takes:</Text>{" "}
-            {matcher === "true" ? "every Davis event" : <code>{matcher}</code>}
+            {matcher === "true" ? "every event" : <code>{matcher}</code>}
           </Text>
         )}
 

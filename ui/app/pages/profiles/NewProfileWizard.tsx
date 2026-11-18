@@ -148,7 +148,7 @@ export const NewProfileWizard = ({ registry, onCreate, onClose }: Props) => {
 
         {step === 1 && (
           <Flex flexDirection="column" gap={16}>
-            <Paragraph>Which Davis events should it take?</Paragraph>
+            <Paragraph>Which events should it take?</Paragraph>
             <Select value={take} onChange={(v) => v && setTake(v)}>
               <Select.Content>
                 {roles.length > 0 && (

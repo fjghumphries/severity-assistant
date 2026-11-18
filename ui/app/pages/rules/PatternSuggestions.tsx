@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { Flex } from "@dynatrace/strato-components/layouts";
+import { Flex, Surface } from "@dynatrace/strato-components/layouts";
 import {
   Paragraph,
   Strong,
@@ -9,7 +9,6 @@ import {
 import { Button } from "@dynatrace/strato-components/buttons";
 import { Chip, ProgressCircle } from "@dynatrace/strato-components/content";
 import { Modal } from "@dynatrace/strato-components/overlays";
-import { type DataTableColumnDef } from "@dynatrace/strato-components/tables";
 import { CriticalIcon } from "@dynatrace/strato-icons";
 
 import {
@@ -21,7 +20,6 @@ import {
   type DiscoveryWindow,
 } from "../../lib/types/discovery";
 import { Select } from "@dynatrace/strato-components/forms";
-import { AppTable } from "../../components/AppTable";
 
 type State =
   | { status: "idle" }
@@ -32,7 +30,7 @@ type State =
 interface Props {
   /** Scopes the suggestions to the rule's own event, when it has one. */
   eventName: string | null;
-  onPick: (pattern: string) => void;
+  onPick: (pattern: string, sample: string) => void;
 }
 
 /**
@@ -51,54 +49,6 @@ export const PatternSuggestions = ({ eventName, onPick }: Props) => {
       .then((suggestions) => setState({ status: "ready", suggestions }))
       .catch((e: Error) => setState({ status: "error", message: e.message }));
   };
-
-  const columns: DataTableColumnDef<PatternSuggestion>[] = [
-    {
-      id: "sample",
-      header: "Example description",
-      accessor: "sample",
-      minWidth: 300,
-    },
-    {
-      id: "matches",
-      header: "Events",
-      accessor: "matches",
-      columnType: "meterbar",
-      config: { max: "data-max" },
-    },
-    {
-      id: "pattern",
-      header: "Pattern",
-      accessor: "pattern",
-      minWidth: 260,
-      cell: ({ rowData }: { rowData: PatternSuggestion }) => (
-        <Flex flexDirection="column" gap={2}>
-          <Text style={{ fontFamily: "monospace" }}>{rowData.pattern}</Text>
-          {rowData.approximated && (
-            <Chip color="warning" size="condensed">
-              Number type guessed
-            </Chip>
-          )}
-        </Flex>
-      ),
-    },
-    {
-      id: "use",
-      header: "",
-      accessor: (row: PatternSuggestion) => row.pattern,
-      cell: ({ rowData }: { rowData: PatternSuggestion }) => (
-        <Button
-          variant="accent"
-          onClick={() => {
-            onPick(rowData.pattern);
-            setOpen(false);
-          }}
-        >
-          Use
-        </Button>
-      ),
-    },
-  ];
 
   return (
     <>
@@ -127,13 +77,15 @@ export const PatternSuggestions = ({ eventName, onPick }: Props) => {
       >
         <Flex flexDirection="column" gap={12}>
           <Text>
-            Groups the event descriptions from the window below and turns each
-            one into a pattern that reads its number.{" "}
+            Looks at the event descriptions in the window below and offers a
+            pattern for each number it finds.{" "}
             {eventName?.trim()
-              ? `Scoped to "${eventName.trim()}".`
-              : "Across every event."}{" "}
-            Descriptions with no number in them cannot drive a threshold and are
-            left out.
+              ? `Only events named "${eventName.trim()}".`
+              : "All events."}{" "}
+            Descriptions with no number cannot drive a threshold and are left
+            out. Pick the pattern that reads the value you want: a description
+            can hold several numbers, such as a threshold and the value that
+            crossed it.
           </Text>
 
           <Flex gap={8} alignItems="center">
@@ -188,12 +140,59 @@ export const PatternSuggestions = ({ eventName, onPick }: Props) => {
                 to read. Widen the window, or write the pattern by hand.
               </Paragraph>
             ) : (
-              <AppTable
-                data={state.suggestions}
-                columns={columns}
-                sortable
-                fullWidth
-              />
+              <Flex flexDirection="column" gap={8}>
+                {state.suggestions.map((sug) => (
+                  <Surface key={sug.pattern} padding={16}>
+                    <Flex
+                      alignItems="center"
+                      justifyContent="space-between"
+                      gap={16}
+                      flexWrap="wrap"
+                    >
+                      <Flex
+                        flexDirection="column"
+                        gap={4}
+                        style={{ flex: "1 1 360px", minWidth: 0 }}
+                      >
+                        <Text>
+                          <Strong>Reads {sug.reads ?? "a number"}</Strong>
+                          {sug.context && <> in &ldquo;{sug.context}&rdquo;</>}
+                        </Text>
+                        <Text
+                          style={{
+                            fontFamily: "monospace",
+                            overflowWrap: "anywhere",
+                          }}
+                        >
+                          {sug.pattern}
+                        </Text>
+                        {sug.approximated && (
+                          <Flex>
+                            <Chip color="warning" size="condensed">
+                              Number type guessed
+                            </Chip>
+                          </Flex>
+                        )}
+                      </Flex>
+                      <Flex alignItems="center" gap={12}>
+                        <Text>
+                          {sug.matches.toLocaleString()} event
+                          {sug.matches === 1 ? "" : "s"}
+                        </Text>
+                        <Button
+                          variant="accent"
+                          onClick={() => {
+                            onPick(sug.pattern, sug.sample);
+                            setOpen(false);
+                          }}
+                        >
+                          Use
+                        </Button>
+                      </Flex>
+                    </Flex>
+                  </Surface>
+                ))}
+              </Flex>
             ))}
         </Flex>
       </Modal>

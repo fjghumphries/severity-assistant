@@ -150,7 +150,7 @@ export const JourneyDiagram = () => {
   const h = 76;
   const xs = [0, 1, 2, 3, 4, 5].map((i) => 8 + i * (w + gap));
   const stages = [
-    { title: "Davis event", sub: "raised by a detector" },
+    { title: "Event", sub: "raised by a detector" },
     { title: "Route", sub: "first match wins" },
     { title: "Your pipeline", sub: "applies your rules" },
     { title: "Event stored", sub: "with event.severity" },
@@ -258,7 +258,7 @@ export const ProfilesDiagram = () => (
     height={250}
     label="An event is tested against each route in order; the first that matches sends it to that profile's pipeline"
   >
-    <Box x={8} y={90} w={170} h={70} title="Davis event" sub="arrives" />
+    <Box x={8} y={90} w={170} h={70} title="Event" sub="arrives" />
 
     <Box
       x={250}

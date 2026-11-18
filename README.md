@@ -193,7 +193,7 @@ Use a non-production tenant and a narrow test profile.
    ```
 
 A profile in **Observe** mode records what it would set and leaves `event.severity` alone. When you
-are done, use **Settings > Remove and reset** to remove the test profile. Questions and feedback are
+are done, uninstall the test profile's pipeline on the **Pipeline** screen and remove the profile on the **Profiles** screen (or use **Settings > Remove and reset** to start over). Questions and feedback are
 welcome as issues on this repository.
 
 ## Known limitations

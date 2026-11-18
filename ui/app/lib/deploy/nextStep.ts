@@ -9,7 +9,8 @@
 /** How the deployed pipeline compares with what the saved rules and settings compile to. */
 export type DeployKind = "errors" | "not-deployed" | "pending" | "in-sync";
 
-export type RouteKind = "absent" | "disabled" | "shadowed" | "live";
+export type RouteKind =
+  "absent" | "disabled" | "shadowed" | "live" | "outdated";
 
 export interface NextStepInput {
   /** Null until the live pipeline has been read, so the banner never flashes a wrong state. */
@@ -64,6 +65,14 @@ export function nextStep(i: NextStepInput): NextStep | null {
       title: "The pipeline is deployed, but no route sends events to it",
       body: "Until its route is enabled the pipeline does nothing.",
       action: { label: "Enable the route", to: "/pipeline" },
+    };
+  }
+  if (i.route === "outdated") {
+    return {
+      tone: "warning",
+      title: "The route still uses the old matcher",
+      body: "This profile's matcher was changed after its route was written, so the route keeps taking the events of the old matcher until you update it.",
+      action: { label: "Update the route", to: "/pipeline" },
     };
   }
   if (i.route === "shadowed") {

@@ -1,6 +1,7 @@
 import {
   planRemoveRoute,
   describeRouteState,
+  describeRouteStateFor,
   planRoute,
   ROUTE_DESCRIPTION,
   RoutingEntry,
@@ -128,5 +129,47 @@ describe("planRoute with several managed routes", () => {
       "enable",
     );
     expect(plan.warnings.join(" ")).not.toMatch(/Severity Assistant route/);
+  });
+});
+
+describe("describeRouteStateFor (matcher drift)", () => {
+  const live = entry(OURS, { matcher: 'matchesValue(primary_tags.bu, "bu1")' });
+
+  test("same matcher -> live, even with different whitespace", () => {
+    expect(
+      describeRouteStateFor(
+        [live],
+        OURS,
+        'matchesValue(primary_tags.bu,   "bu1")',
+      ).state,
+    ).toBe("live");
+  });
+
+  test("a live route whose matcher was changed in the profile is outdated, and says what it takes now", () => {
+    const r = describeRouteStateFor(
+      [live],
+      OURS,
+      'matchesValue(primary_tags.landscape, "app1")',
+    );
+    expect(r.state).toBe("outdated");
+    expect(r.liveMatcher).toBe('matchesValue(primary_tags.bu, "bu1")');
+  });
+
+  test("a disabled route is not outdated (enabling rewrites the matcher anyway)", () => {
+    const off = entry(OURS, { enabled: false, matcher: "old" });
+    expect(describeRouteStateFor([off], OURS, "new").state).toBe("disabled");
+  });
+
+  test("a shadowed route stays shadowed, the more serious problem", () => {
+    const catchAll = entry("other");
+    expect(
+      describeRouteStateFor([catchAll, live], OURS, "something else").state,
+    ).toBe("shadowed");
+  });
+
+  test("applying the update replaces the matcher", () => {
+    const plan = planRoute([live], OURS, "new matcher", "enable");
+    expect(plan.entries[0].matcher).toBe("new matcher");
+    expect(plan.noChange).toBe(false);
   });
 });

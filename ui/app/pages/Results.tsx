@@ -92,7 +92,7 @@ const CLASS_SERIES = (r: MonitorRow) =>
   })[classify(r)];
 
 /**
- * Events: monitoring of the Davis events themselves -- how many, when, for which detector and
+ * Events: monitoring of the events themselves -- how many, when, for which detector and
  * business fields, and what the app's pipeline did to them. The Pipeline tab is configuration;
  * this is where its effect is observed. One query, everything else is derived client-side.
  */
@@ -101,7 +101,7 @@ export const Results = () => {
   const [dim, setDim] = useState<Dimension>("bu");
   const [open, setOpen] = useState<Open>(null);
   const [filters, setFilters] = useState<Filters>({});
-  // "profile": only events this profile's pipeline processed. "all": every Davis event, so the
+  // "profile": only events this profile's pipeline processed. "all": every event, so the
   // pipelines can be told apart.
   const [scope, setScope] = useState<"profile" | "all">("profile");
   const [colourBy, setColourBy] = useState<"outcome" | "pipeline">("outcome");
@@ -225,7 +225,7 @@ export const Results = () => {
           title="Results"
           subtitle={
             <>
-              Davis events and what the severity pipeline did to them.
+              events and what the severity pipeline did to them.
               {scannedGb &&
                 ` This view scanned ${scannedGb} GB; a wider window scans proportionally more.`}
             </>
@@ -298,7 +298,7 @@ export const Results = () => {
                     pipeline.
                   </Strong>{" "}
                   The tenant had{" "}
-                  {everyRow.reduce((n, r) => n + r.c, 0).toLocaleString()} Davis
+                  {everyRow.reduce((n, r) => n + r.c, 0).toLocaleString()}{" "}
                   events in this window, none of them through this profile. Its
                   route may be off, or its matcher may not match these events (a
                   new profile&apos;s matcher starts narrow). Switch to{" "}

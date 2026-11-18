@@ -98,11 +98,11 @@ const FAQ: Faq[] = [
   {
     topic: "Going live and undoing",
     q: "Will problems pick up the severity I set on events?",
-    a: "A problem takes the severity of its most severe event, when it is created or updated. So only problems opened after the route goes live are affected; existing problems and severities already written to events are not changed, and cannot be unwritten. The app writes the severity as a number, the form Davis expects, and the event severities it writes are visible on the Results screen.",
+    a: "A problem takes the severity of its most severe event, when it is created or updated. So only problems opened after the route goes live are affected; existing problems and severities already written to events are not changed, and cannot be unwritten. The app writes the severity as a number, the form Dynatrace Intelligence expects, and the event severities it writes are visible on the Results screen.",
   },
   {
     topic: "Going live and undoing",
-    q: "Can I run this alongside my own Davis event routing?",
+    q: "Can I run this alongside my own event routing?",
     a: "Only if your matcher is narrow. Routing is first-match-wins and this app's route goes first, so a matcher of true takes every event and routes below it stop receiving anything. Give a profile a narrow matcher to scope it to one team or business unit.",
   },
   {
@@ -153,7 +153,7 @@ const FAQ: Faq[] = [
   {
     topic: "Going live and undoing",
     q: "How do I undo a publish?",
-    a: "Disable the route on the Pipeline screen. That stops new events from being touched immediately. To remove a profile's pipeline and route from the tenant, use Settings > Remove and reset. Tick the backup option before a write if you want a file to restore from.",
+    a: "Disable the route on the Pipeline screen. That stops new events from being touched immediately. To remove a profile's pipeline and route from the tenant, use Uninstall at the bottom of the Pipeline screen (select the profile first). Tick the backup option before a write if you want a file to restore from.",
   },
   {
     topic: "Reference: what the app builds",
@@ -200,7 +200,7 @@ const FAQ: Faq[] = [
   {
     topic: "Maintenance and removal",
     q: "How do I clear my rules, or start over?",
-    a: 'Both are under Settings > Remove and reset. "Delete all rules" empties one profile\'s rules and keeps everything around them: the route matcher, the fallback severity and the deployed pipeline. Events keep their current severity until you publish again, because the deployed pipeline still holds the old rules. To start over completely, use "Reset the app": it deletes the label mapping, every profile and every rule set, and (with the option ticked, the default) removes the pipelines and routes the app deployed. To take only the pipeline and route out of the tenant and keep the rules, uninstall that profile\'s pipeline instead. Neither changes events that were already processed.',
+    a: 'Rules and the full reset are under Settings > Remove and reset. "Delete all rules" empties one profile\'s rules and keeps everything around them: the route matcher, the fallback severity and the deployed pipeline. Events keep their current severity until you publish again, because the deployed pipeline still holds the old rules. To start over completely, use "Reset the app": it deletes the label mapping, every profile and every rule set, and (with the option ticked, the default) removes the pipelines and routes the app deployed. To take only the pipeline and route out of the tenant and keep the rules, use Uninstall on that profile\'s Pipeline screen instead. Removing a profile on the Profiles screen can uninstall its pipeline in the same step. Neither changes events that were already processed.',
   },
   {
     topic: "Reference: what the app builds",
@@ -260,7 +260,7 @@ const FAQ: Faq[] = [
   {
     topic: "Limits and platform",
     q: "Does the app cost anything to run?",
-    a: "Using it consumes Dynatrace query capacity: it runs queries on Davis events when you open it, and queries are billed by data scanned. The rule screens and the label fill rates look at the last two hours; the Results screen looks at 24 hours by default (a few GB on a busy tenant) and offers other windows. Opening Results less often, or choosing a shorter window, is the lever.",
+    a: "Using it consumes Dynatrace query capacity: it runs queries on events when you open it, and queries are billed by data scanned. The rule screens and the label fill rates look at the last two hours; the Results screen looks at 24 hours by default (a few GB on a busy tenant) and offers other windows. Opening Results less often, or choosing a shorter window, is the lever.",
   },
 ];
 
@@ -409,9 +409,9 @@ export const GettingStarted = () => {
       <Flex flexDirection="column" gap={12}>
         <Heading level={2}>Help</Heading>
         <Prose>
-          Severity Assistant decides how severe each Davis event is from rules
-          you write in business terms, and generates and manages the pipeline
-          and route that apply them.
+          Severity Assistant decides how severe each event is from rules you
+          write in business terms, and generates and manages the pipeline and
+          route that apply them.
         </Prose>
       </Flex>
 
@@ -495,9 +495,9 @@ export const GettingStarted = () => {
                 <Prose>
                   <Paragraph>
                     A rule that takes its severity from a number reads that
-                    number from the event description. Events that Davis writes
-                    itself (error rate, memory, slowdown and so on) need nothing
-                    more. If the event comes from{" "}
+                    number from the event description. Events that Dynatrace
+                    Intelligence writes itself (error rate, memory, slowdown and
+                    so on) need nothing more. If the event comes from{" "}
                     <Strong>your own anomaly detector</Strong>, you have to put
                     the number into the description yourself, and the detector
                     needs two things: the number as a single value, and merging

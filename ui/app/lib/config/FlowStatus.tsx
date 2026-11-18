@@ -15,7 +15,7 @@ import {
   readRouting,
 } from "../deploy/pipelineApi";
 import { buildDeployPlan, type LivePipeline } from "../deploy/plan";
-import { describeRouteState } from "../deploy/routing";
+import { describeRouteStateFor } from "../deploy/routing";
 import type { DeployKind, RouteKind } from "../deploy/nextStep";
 import { useEffectiveRegistry, useProfiles } from "./ProfileContext";
 import { useRules } from "./useRules";
@@ -130,20 +130,23 @@ export const FlowStatusProvider = ({
       if (!objectId) {
         out.pipeline = { label: "Not deployed", tone: "warning" };
       } else if (tenant.routing) {
-        const route = describeRouteState(
+        const route = describeRouteStateFor(
           tenant.routing.map((e) => ({
             ...e,
             description: "",
             pipelineType: "custom",
           })),
           objectId,
+          registry.routeMatcher,
         ).state;
         out.pipeline =
           route === "live"
             ? { label: "Live", tone: "success" }
-            : route === "shadowed"
-              ? { label: "Shadowed", tone: "critical" }
-              : { label: "Not routed", tone: "neutral" };
+            : route === "outdated"
+              ? { label: "Route out of date", tone: "warning" }
+              : route === "shadowed"
+                ? { label: "Shadowed", tone: "critical" }
+                : { label: "Not routed", tone: "neutral" };
       } else {
         out.pipeline = { label: "Deployed", tone: "success" };
       }
@@ -193,13 +196,14 @@ export const FlowStatusProvider = ({
     if (!registry || !tenant?.pipelines || !tenant.routing) return null;
     const objectId = tenant.pipelines.get(registry.pipelineCustomId);
     if (!objectId) return null;
-    return describeRouteState(
+    return describeRouteStateFor(
       tenant.routing.map((e) => ({
         ...e,
         description: "",
         pipelineType: "custom",
       })),
       objectId,
+      registry.routeMatcher,
     ).state;
   }, [registry, tenant]);
 

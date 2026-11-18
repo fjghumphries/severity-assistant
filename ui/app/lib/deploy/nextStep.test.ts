@@ -57,4 +57,11 @@ describe("nextStep", () => {
       "You have changes that are not active yet",
     );
   });
+
+  it("asks for a route update when the profile's matcher changed after the route was written", () => {
+    const n = nextStep({ ...base, route: "outdated" });
+    expect(n?.tone).toBe("warning");
+    expect(n?.title).toMatch(/old matcher/i);
+    expect(n?.action.to).toBe("/pipeline");
+  });
 });

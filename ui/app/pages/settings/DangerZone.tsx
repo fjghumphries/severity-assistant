@@ -27,7 +27,6 @@ import {
 import { uninstallPipeline } from "../../lib/deploy/uninstall";
 import { describeRouteState } from "../../lib/deploy/routing";
 import type { RoleRegistry } from "../../lib/types/registry";
-import { UninstallSection } from "./UninstallSection";
 
 const CONFIRM_WORD = "RESET";
 
@@ -145,9 +144,9 @@ interface Row {
 }
 
 /**
- * Everything that removes the app from the tenant or forgets its configuration, in one place:
- * uninstalling each profile's pipeline and route, and the full reset. Lives in Settings rather
- * than on the Pipeline screen so a destructive action is never one click from a deploy.
+ * Everything that forgets the app's configuration: a profile's rules and the full reset (which can
+ * also remove the pipelines and routes). Uninstalling one profile's pipeline lives on the Pipeline
+ * screen, next to the pipeline itself.
  */
 export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
   const { refresh: refreshFlowStatus } = useFlowStatus();
@@ -274,9 +273,10 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
     <Flex flexDirection="column" gap={12}>
       <Heading level={3}>Remove and reset</Heading>
       <Prose>
-        Three levels, smallest first: delete one profile&apos;s rules and keep
-        the profile; uninstall its pipeline and route from the tenant and keep
-        the rules; or reset the app and forget everything it has stored.
+        Two things live here: delete one profile&apos;s rules and keep the
+        profile, or reset the app and forget everything it has stored. Taking a
+        profile&apos;s pipeline and route out of the tenant while keeping its
+        rules is on the Pipeline screen.
       </Prose>
 
       <Heading level={4}>Per profile</Heading>
@@ -305,17 +305,13 @@ export const DangerZone = ({ registry }: { registry: RoleRegistry }) => {
                 <Text>{row.pipelineCustomId}</Text>
               </Flex>
               <ClearRules profileId={row.id} profileName={row.name} />
-              <UninstallSection
-                compact
-                profileName={row.name}
-                customId={row.pipelineCustomId}
-                deployed={row.deployed}
-                routeIsLive={row.routeIsLive}
-                onDone={() => {
-                  void load();
-                  refreshFlowStatus();
-                }}
-              />
+              {row.deployed && (
+                <Text>
+                  To take this profile&apos;s pipeline and route out of the
+                  tenant, select the profile and use Uninstall on the Pipeline
+                  screen.
+                </Text>
+              )}
             </Flex>
           </Surface>
         ))

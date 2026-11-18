@@ -9,7 +9,7 @@ import {
   Text,
 } from "@dynatrace/strato-components/typography";
 import { Button } from "@dynatrace/strato-components/buttons";
-import { TextInput } from "@dynatrace/strato-components/forms";
+import { Checkbox, TextInput } from "@dynatrace/strato-components/forms";
 import { Chip, ProgressCircle } from "@dynatrace/strato-components/content";
 import { Modal } from "@dynatrace/strato-components/overlays";
 import { type DataTableColumnDef } from "@dynatrace/strato-components/tables";
@@ -22,8 +22,13 @@ import { useRuleCount } from "../lib/config/useRuleCount";
 import { useSaveProfiles } from "../lib/config/useRegistry";
 import { SaveBar } from "../components/SaveBar";
 import { validateRegistry } from "../lib/config/validateRegistry";
-import { readPipelineIndex, readRouting } from "../lib/deploy/pipelineApi";
-import { describeRouteState } from "../lib/deploy/routing";
+import {
+  describeWriteError,
+  readPipelineIndex,
+  readRouting,
+} from "../lib/deploy/pipelineApi";
+import { uninstallPipeline } from "../lib/deploy/uninstall";
+import { describeRouteStateFor } from "../lib/deploy/routing";
 import type { Profile } from "../lib/types/registry";
 import { HelpTip } from "../components/HelpTip";
 import { PageHeader } from "../components/PageHeader";
@@ -32,7 +37,7 @@ import { NewProfileWizard } from "./profiles/NewProfileWizard";
 import { ProfileEditor } from "./profiles/ProfileEditor";
 import { AppTable } from "../components/AppTable";
 
-type RouteState = "absent" | "disabled" | "shadowed" | "live";
+type RouteState = "absent" | "disabled" | "shadowed" | "live" | "outdated";
 
 interface Status {
   /** customId -> objectId of deployed pipelines; null while loading or unreadable. */
@@ -68,37 +73,63 @@ interface RemoveDialogProps {
   deployed: boolean;
   checked: boolean;
   onConfirm: () => void;
+  onUninstalled: () => void;
   onCancel: () => void;
 }
 
-/** Confirms removing a profile, and blocks it while its pipeline is still deployed so a managed
- * pipeline is never orphaned in the tenant. */
+/** Confirms removing a profile. If its pipeline is still deployed, the same step can uninstall the
+ * pipeline and route (ticked by default), so a managed pipeline is not left behind in the tenant. */
 const RemoveDialog = ({
   profile,
   deployed,
   checked,
   onConfirm,
+  onUninstalled,
   onCancel,
 }: RemoveDialogProps) => {
   const ruleCount =
     useRuleCount(profile?.id ?? DEFAULT_PROFILE_ID)?.total ?? null;
+  const [alsoUninstall, setAlsoUninstall] = useState(true);
+  const [working, setWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const remove = async () => {
+    if (!profile) return;
+    setError(null);
+    if (deployed && alsoUninstall) {
+      setWorking(true);
+      try {
+        await uninstallPipeline(profile.pipelineCustomId);
+        onUninstalled();
+      } catch (e) {
+        setError(
+          `The pipeline could not be uninstalled, so the profile was not removed: ${describeWriteError(e)}`,
+        );
+        setWorking(false);
+        return;
+      }
+      setWorking(false);
+    }
+    onConfirm();
+  };
+
   return (
     <Modal
       title={`Remove profile "${profile?.name ?? ""}"?`}
       show={profile !== null}
       size="small"
-      onDismiss={onCancel}
+      onDismiss={() => !working && onCancel()}
       footer={
         <Flex gap={8}>
           <Button
             variant="accent"
             color="critical"
-            disabled={deployed}
-            onClick={onConfirm}
+            disabled={working}
+            onClick={() => void remove()}
           >
-            Remove profile
+            {working ? "Removing..." : "Remove profile"}
           </Button>
-          <Button variant="emphasized" onClick={onCancel}>
+          <Button variant="emphasized" disabled={working} onClick={onCancel}>
             Cancel
           </Button>
         </Flex>
@@ -111,12 +142,20 @@ const RemoveDialog = ({
           profiles. This cannot be undone.
         </Text>
         {deployed && (
+          <Checkbox
+            value={alsoUninstall}
+            onChange={setAlsoUninstall}
+            disabled={working}
+          >
+            Also uninstall its pipeline and route from the tenant (recommended)
+          </Checkbox>
+        )}
+        {deployed && !alsoUninstall && (
           <Flex gap={8} alignItems="center">
             <CriticalIcon />
             <Text>
-              Its pipeline is still deployed in the tenant. Open the profile, go
-              to Pipeline and use Uninstall first, so no pipeline or route is
-              left behind.
+              The pipeline stays deployed with nothing in the app pointing at
+              it, and events it takes keep their severities from it.
             </Text>
           </Flex>
         )}
@@ -125,6 +164,12 @@ const RemoveDialog = ({
             Could not check whether its pipeline is still deployed: make sure it
             is uninstalled.
           </Text>
+        )}
+        {error && (
+          <Flex gap={8} alignItems="center">
+            <CriticalIcon />
+            <Text>{error}</Text>
+          </Flex>
         )}
       </Flex>
     </Modal>
@@ -207,21 +252,32 @@ export const Profiles = () => {
   );
 
   const routeStateOf = useCallback(
-    (pipelineCustomId: string): RouteState | null => {
+    (pipelineCustomId: string, matcher: string): RouteState | null => {
       if (!status.pipelines) return null;
       const objectId = status.pipelines.get(pipelineCustomId);
       if (!objectId) return "absent";
       if (!status.routing) return null;
-      return describeRouteState(
+      return describeRouteStateFor(
         status.routing.map((e) => ({
           ...e,
           description: "",
           pipelineType: "custom",
         })),
         objectId,
+        matcher,
       ).state;
     },
     [status],
+  );
+
+  // The matcher the route should have is the SAVED one; unsaved edits in the table are not applied yet.
+  const savedMatcherOf = useCallback(
+    (row: Row): string =>
+      (row.isDefault
+        ? registry?.routeMatcher
+        : stored.find((p) => p.id === row.id)?.routeMatcher) ??
+      row.routeMatcher,
+    [registry, stored],
   );
 
   const rows: Row[] = useMemo(() => {
@@ -280,7 +336,7 @@ export const Profiles = () => {
         cell: ({ rowData }: { rowData: Row }) => {
           const m = rowData.routeMatcher.trim();
           return m === "true" ? (
-            <Text>Every Davis event</Text>
+            <Text>Every event</Text>
           ) : m === "" ? (
             <Text>(matcher not set)</Text>
           ) : (
@@ -299,7 +355,8 @@ export const Profiles = () => {
       {
         id: "status",
         header: "Status",
-        accessor: (row: Row) => routeStateOf(row.pipelineCustomId) ?? "",
+        accessor: (row: Row) =>
+          routeStateOf(row.pipelineCustomId, savedMatcherOf(row)) ?? "",
         cell: ({ rowData }: { rowData: Row }) => {
           if (status.pipelines === null) return <Text>...</Text>;
           if (!status.pipelines.has(rowData.pipelineCustomId)) {
@@ -309,7 +366,10 @@ export const Profiles = () => {
               </Chip>
             );
           }
-          const route = routeStateOf(rowData.pipelineCustomId);
+          const route = routeStateOf(
+            rowData.pipelineCustomId,
+            savedMatcherOf(rowData),
+          );
           if (route === null) {
             return (
               <Chip color="success" size="condensed">
@@ -320,6 +380,10 @@ export const Profiles = () => {
           return route === "live" ? (
             <Chip color="success" size="condensed">
               Live
+            </Chip>
+          ) : route === "outdated" ? (
+            <Chip color="warning" size="condensed">
+              Route out of date
             </Chip>
           ) : route === "shadowed" ? (
             <Chip color="critical" size="condensed">
@@ -371,7 +435,7 @@ export const Profiles = () => {
         ),
       },
     ],
-    [status, routeStateOf, navigate, setProfileId],
+    [status, routeStateOf, savedMatcherOf, navigate, setProfileId],
   );
 
   if (isLoading || draft === null || !registry) {
@@ -457,10 +521,10 @@ export const Profiles = () => {
               and where setup puts your labels and first rules. A new install
               starts it with a narrow matcher that takes only events opted in
               with sa.optin = true, so nothing is touched until you choose;
-              taking every Davis event is possible but asks you to confirm,
-              because other routes then stop receiving events. Add a profile
-              when one team wants its own severities while everyone else keeps
-              the current behaviour: give it a narrow matcher such as{" "}
+              taking every event is possible but asks you to confirm, because
+              other routes then stop receiving events. Add a profile when one
+              team wants its own severities while everyone else keeps the
+              current behaviour: give it a narrow matcher such as{" "}
               <code>matchesValue(primary_tags.bu, &quot;bu1&quot;)</code> and
               only those events go through it.
               <br />
@@ -576,6 +640,10 @@ export const Profiles = () => {
         onConfirm={() => {
           setDraft(draft.filter((x) => x.id !== removing));
           setRemoving(null);
+        }}
+        onUninstalled={() => {
+          void loadStatus();
+          refreshFlowStatus();
         }}
         onCancel={() => setRemoving(null)}
       />

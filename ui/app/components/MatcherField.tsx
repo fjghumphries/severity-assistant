@@ -45,7 +45,7 @@ export const MatcherField = ({ value, onChange }: Props) => {
           <Select.Option value="custom">
             Only events matching a condition (recommended)
           </Select.Option>
-          <Select.Option value="all">All Davis events</Select.Option>
+          <Select.Option value="all">All events</Select.Option>
         </Select.Content>
       </Select>
 
@@ -66,10 +66,10 @@ export const MatcherField = ({ value, onChange }: Props) => {
       ) : (
         <>
           <Text>
-            Taking every Davis event means other routes, including other teams'
+            Taking every event means other routes, including other teams'
             pipelines, stop receiving events: routing is first-match-wins and
             this route goes first. Use a narrow condition if anything else
-            routes Davis events.
+            routes events.
           </Text>
           <Checkbox
             value={understood || isAllEvents(value)}

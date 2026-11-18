@@ -32,6 +32,7 @@ import { HelpTip } from "../../components/HelpTip";
 import { severityText } from "../../components/SeverityBadge";
 import { EventNameField } from "./EventPicker";
 import { PatternSuggestions } from "./PatternSuggestions";
+import { PatternTestPanel } from "./PatternTestPanel";
 import { boundsProblem, summarizeBounds } from "../../lib/rules/bounds";
 
 /** Sentinel for "(no role condition)" in a Role select -- Select.Option values must be
@@ -474,6 +475,10 @@ const THRESHOLD_SEVERITY_LABELS = [
 export function ThresholdEditor(props: {
   /** The rule's event name, so suggestions can be scoped to it. */
   eventName: string | null;
+  /** The rule's detector, if it targets one; where "use the latest event" looks first. */
+  detectorId?: string | null;
+  /** Reports a reason while the pattern is known not to read a number, else null. */
+  onPatternBlock?: (reason: string | null) => void;
   patternPresetId: string;
   setPatternPresetId: (id: string) => void;
   parsePattern: string;
@@ -483,6 +488,8 @@ export function ThresholdEditor(props: {
 }) {
   const {
     eventName,
+    detectorId = null,
+    onPatternBlock,
     patternPresetId,
     setPatternPresetId,
     parsePattern,
@@ -490,6 +497,12 @@ export function ThresholdEditor(props: {
     bounds,
     setBounds,
   } = props;
+
+  const [sample, setSample] = useState("");
+  const noBlock = React.useCallback(
+    (reason: string | null) => onPatternBlock?.(reason),
+    [onPatternBlock],
+  );
 
   const selectedPreset = THRESHOLD_PATTERN_PRESETS.find(
     (p) => p.id === patternPresetId,
@@ -503,6 +516,8 @@ export function ThresholdEditor(props: {
     const preset = THRESHOLD_PATTERN_PRESETS.find((p) => p.id === id);
     if (!preset) return;
     setParsePattern(preset.pattern);
+    // A preset ships a representative description, so it can be tested straight away.
+    setSample(preset.sampleDescription);
     // Only seed the boundary inputs the first time a preset is picked -- never clobber values
     // the user already typed (e.g. when switching presets after adjusting bounds).
     if (bounds.every((b) => b === "")) {
@@ -533,7 +548,7 @@ export function ThresholdEditor(props: {
             merged into problems by default, so every new value opens a new
             problem. In the detector&apos;s event template, set{" "}
             <code>dt.davis.is_merging_allowed</code> to <code>true</code>.
-            Events written by Davis itself need nothing.{" "}
+            Events written by Dynatrace Intelligence itself need nothing.{" "}
             <ExternalLink href={helpHref}>
               Read the setup notes (opens in a new tab)
             </ExternalLink>
@@ -572,9 +587,10 @@ export function ThresholdEditor(props: {
 
       <PatternSuggestions
         eventName={eventName}
-        onPick={(pattern) => {
+        onPick={(pattern, pickedSample) => {
           setPatternPresetId(CUSTOM_PATTERN_ID);
           setParsePattern(pattern);
+          if (pickedSample) setSample(pickedSample);
         }}
       />
 
@@ -610,6 +626,15 @@ export function ThresholdEditor(props: {
           </Hint>
         )}
       </Flex>
+
+      <PatternTestPanel
+        pattern={parsePattern}
+        sample={sample}
+        setSample={setSample}
+        eventName={eventName}
+        detectorId={detectorId}
+        onBlock={noBlock}
+      />
 
       <Flex flexDirection="column" gap={8}>
         <Paragraph>Severity by value</Paragraph>

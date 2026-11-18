@@ -3,6 +3,18 @@
 Newest first. Release notes with the downloads are on the
 [Releases page](https://github.com/fjghumphries/severity-assistant/releases).
 
+### 0.2.6 (2026-11-18)
+
+**Added**
+- **Test a by-value pattern on a real description.** Under the pattern, the editor now runs it on a sample (the latest event of the rule's detector or event name, a pasted description, or the one from a suggestion or preset) and shows what it reads, for example "Reads 75.18". A pattern that reads nothing, such as one missing the space inside the quotes, can no longer be saved: the editor says why and what to change. Without a sample the pattern is simply untested.
+- **"Route out of date".** If a profile's matcher is changed after its route was written, the route keeps taking the old matcher's events. The app now compares them and shows "Route out of date" on the Pipeline screen, the Profiles table, the top bar and a banner, with an "Update route" button on the Route card.
+- **Removing a profile can uninstall its pipeline in the same step** (ticked by default), instead of sending you elsewhere first.
+- **Uninstall is on the Pipeline screen,** next to the pipeline, for the selected profile. Settings keeps "Delete all rules" and the full reset.
+
+**Changed**
+- **The "Suggest from recent events" dialog is readable.** Suggestions are short patterns anchored on the label before the number (for example `DATA ' Value: 'DOUBLE:sa_v`), one for each number in the description, with what each one reads and a wrapped layout instead of a truncated table.
+- The app says "Dynatrace events" and "Dynatrace Intelligence" instead of "Davis" in its own text.
+
 ### 0.2.5 (2026-11-17)
 
 Covers everything since 0.2.0. The intermediate 0.2.1 to 0.2.4 releases of the same day were folded into this one.

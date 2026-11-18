@@ -35,7 +35,9 @@ import { DeployPanel } from "./pipeline/DeployPanel";
 import { KpiTiles } from "./pipeline/KpiTiles";
 import { PlanDetailsContent } from "./pipeline/PlanDetails";
 import { RestoreSection } from "./pipeline/RestoreSection";
+import { UninstallSection } from "./pipeline/UninstallSection";
 import { RouteSection } from "./pipeline/RouteSection";
+import type { RouteStateName } from "../lib/deploy/routing";
 import { useAnomalyDetectors } from "../lib/queries/useAnomalyDetectors";
 import { summarizePlan } from "../lib/deploy/describe";
 import { useDetectorNameLookup } from "./rules/shared";
@@ -73,9 +75,9 @@ export const Pipeline = () => {
   const [confirming, setConfirming] = useState(false);
   const [deploying, setDeploying] = useState(false);
   const [backupFirst, setBackupFirst] = useState(false);
-  const [routeState, setRouteState] = useState<
-    "absent" | "disabled" | "shadowed" | "live" | null
-  >(null);
+  const [routeState, setRouteState] = useState<RouteStateName | null>(null);
+  // An outdated route is live too: it still takes events, just by its previous matcher.
+  const routeIsOn = routeState === "live" || routeState === "outdated";
   const [deployMessage, setDeployMessage] = useState<{
     ok: boolean;
     text: string;
@@ -133,10 +135,9 @@ export const Pipeline = () => {
   const shownMessage = deployMessage?.ok
     ? {
         ok: true,
-        text:
-          routeState === "live"
-            ? "Pipeline written. The route is live, so new events use it now."
-            : "Pipeline written. It stays inert until a route points at it.",
+        text: routeIsOn
+          ? "Pipeline written. The route is live, so new events use it now."
+          : "Pipeline written. It stays inert until a route points at it.",
       }
     : deployMessage;
 
@@ -229,11 +230,13 @@ export const Pipeline = () => {
   const routeStatus: StepState =
     routeState === "live"
       ? { label: "Live", tone: "success" }
-      : routeState === "shadowed"
-        ? { label: "Shadowed", tone: "critical" }
-        : routeState === "disabled"
-          ? { label: "Disabled", tone: "neutral" }
-          : { label: "Not routed", tone: "neutral" };
+      : routeState === "outdated"
+        ? { label: "Route out of date", tone: "warning" }
+        : routeState === "shadowed"
+          ? { label: "Shadowed", tone: "critical" }
+          : routeState === "disabled"
+            ? { label: "Disabled", tone: "neutral" }
+            : { label: "Not routed", tone: "neutral" };
 
   return (
     <Flex flexDirection="column" padding={32} gap={32}>
@@ -253,7 +256,7 @@ export const Pipeline = () => {
         action={
           !compiled.ok || activeRules === 0
             ? { label: "Go to Rules", to: "/rules" }
-            : routeState === "live"
+            : routeIsOn
               ? { label: "Go to Results", to: "/results" }
               : undefined
         }
@@ -346,8 +349,7 @@ export const Pipeline = () => {
                   </Flex>
                   {plan && <PlanDetailsContent plan={plan} />}
                   <Text>
-                    To take this profile&apos;s pipeline and route out of the
-                    tenant, or to reset the app, go to Settings &gt; Remove and
+                    To reset the whole app, go to Settings &gt; Remove and
                     reset.
                   </Text>
                 </Flex>
@@ -356,6 +358,21 @@ export const Pipeline = () => {
           </Accordion>
         </Flex>
       </Surface>
+
+      {liveState.status === "ready" && (
+        <Surface padding={24}>
+          <UninstallSection
+            profileName={profile.name}
+            customId={registry.pipelineCustomId}
+            deployed={liveState.live !== null}
+            routeIsLive={routeIsOn}
+            onDone={() => {
+              void loadLive();
+              refreshFlowStatus();
+            }}
+          />
+        </Surface>
+      )}
 
       {shownMessage && !(compiled.ok && plan) && (
         <Flex alignItems="center" gap={8}>
