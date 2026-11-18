@@ -11,35 +11,32 @@ or team; the app generates and maintains the OpenPipeline pipeline for Dynatrace
 
 ## Why this app?
 
-Dynatrace events and problems carry a severity (`event.severity`), and a problem takes the severity of its
-most severe event. Workflows, notification routing and ITSM integrations (a ServiceNow priority, for
-example) can build on that field.
+A problem takes the severity of its most severe event. When events carry no meaningful severity, the
+only thing left to route on is the problem type (availability, error, resource and so on), and anything
+downstream, such as a notification channel, a workflow branch or a ServiceNow priority, has little to
+act on.
 
 The severity an event arrives with is set by the detector that raised it, which does not know what the
-event means for a particular application or team: the same failure-rate alert looks identical on an
-outage-management service and on an internal reporting tool. OpenPipeline can set the severity conditionally, and that is the mechanism
-this app uses. What the app adds is a way to keep the rules as data instead of as processor logic:
+event means for a particular application, team or environment. OpenPipeline can set it conditionally,
+and that is the mechanism this app uses. As applications, teams and exceptions multiply, that logic (DQL,
+lookup tables, a route) is something to maintain, and a mistake such as a wrong key, a remapped field or
+a route in the wrong position raises no error. Severity Assistant keeps the policy as rules and
+generates the pipeline from them:
 
-- **Rules in business terms.** "Failure rate increase is 3, but 1 for Grid Operations." The labels are your
-  own (business unit, application, tier, stage, team...), mapped to the tenant fields that hold them.
-- **Severity that follows a number.** When an event's description carries a value, such as the
-  "Failure rate increased to 42%" that Dynatrace Intelligence writes, the severity can follow it: pick the value for each severity, and give
-  a team or label its own bounds with an exception. Events from your own anomaly detectors need a little
-  setup first, described on the Help page.
-- **A generated pipeline.** The pipeline is regenerated from the rules each time, so it always matches
-  them. It is an ordinary OpenPipeline pipeline: every processor has a plain-language description, and
-  you can open it in the OpenPipeline settings. Changes are shown as a rule-level diff before anything
-  is written, and processors the app does not own are left alone.
-- **Staged rollout.** The route stays off until you enable it, an observe mode records what the app
-  would set without changing `event.severity`, backups to your computer are optional, and uninstalling
-  removes only what the app created.
-- **Traceability.** Every event the app touches records what decided its severity (`sa.source`) and
-  what it arrived with (`sa.original_severity`). "Explain this event" shows which rule wins and why,
-  and you can check the result with a query.
-
-It is aimed at Dynatrace admins and operations teams who manage severity for many applications or
-teams. It does not create alerts or change detectors; it sets the severity of the events your detectors
-already raise.
+- **Severity in business terms.** Define severity from operational context such as business unit,
+  application, tier and stage, and from values found in `event.description`.
+- **Threshold-aware rules.** Apply different severities at different values, with thresholds that can
+  vary by business or service. Events from your own anomaly detectors need a little setup first,
+  described on the Help page.
+- **A generated pipeline.** It is regenerated from the rules each time, so it always matches them. It is
+  an ordinary OpenPipeline pipeline you can open and read: every processor has a plain-language
+  description. Changes are shown as a diff before anything is written, and processors the app does not
+  own are left alone.
+- **Safe to undo.** The route stays off until you enable it, an observe mode records what the app would
+  set without changing `event.severity`, backups to your computer are optional, and uninstalling removes
+  only what the app created. Other teams' routes are never edited.
+- **Verifiable.** Every event the app touches records what decided its severity (`sa.source`) and what it
+  arrived with (`sa.original_severity`), and "Explain this event" shows which severity applies and why.
 
 ### An example
 
@@ -55,8 +52,8 @@ looks urgent, or the on-call teams learn to ignore it.
 With Severity Assistant, each business tells the app what matters to it, in its own terms:
 
 - **Trading:** a failure rate of 5% is already the top severity.
-- **Mobility:** the charging network and the fuel-card services are high severity from 10%; non critical back-office
-  tools are not.
+- **Mobility:** the charging network and the fuel-card services are high severity from 10%; non critical
+  back-office tools are not.
 - **Upstream:** production sites get the top severity from 20%; office tools stay low.
 - **Anywhere:** test environments are always the lowest severity.
 
@@ -65,25 +62,35 @@ ticket priorities that read the severity then follow it: the right people are ca
 things, with less noise for everyone else. Each business can own its rules in its own profile, so a
 change in Trading never touches Upstream.
 
+This separates **detection** from **severity policy**: detect the failure-rate condition once, then
+decide how serious it is according to the business, the service, the environment and the measured value.
+
 ## How it works
 
 A first visit starts a short **Setup** (which field holds each label, which events the app takes), which
-you can skip and run again from Help. Then the four steps:
+you can skip and run again from Help. Then four steps:
 
-1. **Profiles.** A profile is an independent pipeline and route with its own rules and its own matcher
-   for the events it takes. Every install starts with one, **Default**; add another when a team wants its
-   own severities while everyone else is left alone.
-2. **Rules.** Per event name or anomaly detector, set a **rule** (the severity for the event), then add **exceptions**
-   based on labels. Exceptions are ordered and **the last match wins**. **Explain an event** shows which
-   rule wins for a given event and label values, and why.
-3. **Pipeline.** The app compiles the rules into an OpenPipeline pipeline for Dynatrace events, shows a diff
-   against what is live, publishes it, and manages the route. A profile can be set to **Observe** for its
-   first go-live: it records `sa.proposed_severity` and leaves `event.severity` alone.
-4. **Results.** See which severities events actually received, or would receive in observe mode.
+1. **Profiles.** Each profile is an independent pipeline and route, with its own rules and its own
+   matcher for the events it takes. Every install starts with one, **Default**; add another when a team
+   wants its own severities while everyone else is left alone.
+2. **Rules.** For each event name or anomaly detector, set a **rule** (its severity, fixed or by value),
+   then add ordered **exceptions** based on labels. The last matching exception wins; the rule applies
+   when none matches. A rule can read a number from `event.description` and give a severity at each
+   value, and an exception can use different bounds for a tier or business unit. **Explain an event**
+   shows which severity applies for a given event and label values, and why.
+3. **Pipeline.** The app compiles the rules into an OpenPipeline pipeline for Dynatrace events, shows a
+   diff against what is live, publishes it, and manages the route. A profile can be set to **Observe**
+   for its first go-live: it records `sa.proposed_severity` and leaves `event.severity` alone.
+4. **Results.** The Results screen shows which severities events actually received, or would receive in
+   observe mode.
 
 Rules and the label mapping live in the app's own state, not in a Grail lookup table. The pipeline is a
 *compiled artifact*, regenerated from them. Each processor carries a plain-language description in
-OpenPipeline, for example `exception #2 - set severity 1 for events named "Foo" when Business Unit = bu1`.
+OpenPipeline, for example:
+
+> Severity Assistant: exception #2 - set severity from a number in the event description (>=5 -> 1,
+> below that, no severity from this rule) for events named "Failure rate increase" when Business Unit =
+> Trading
 
 ### What it changes in your tenant
 
@@ -201,6 +208,8 @@ welcome as issues on this repository.
   rules effectively unlimited (they share one lookup table), up to 4 conditions per rule. The app
   refuses to publish something that would not fit rather than writing a partial pipeline. The full list
   is on the **Help** page.
+- **Severity by value depends on stable event descriptions.** If a detector changes the wording or number
+  format in `event.description`, update and retest the pattern before publishing.
 - **Test against a saved, routed pipeline**, not OpenPipeline Preview.
 
 ## Contributing
