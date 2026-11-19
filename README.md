@@ -92,6 +92,22 @@ OpenPipeline, for example:
 > below that, no severity from this rule) for events named "Failure rate increase" when Business Unit =
 > Trading
 
+### Severity by value and your own anomaly detectors
+
+A rule can read a number from `event.description`. Events that Dynatrace Intelligence writes itself, such as
+the failure rate of a service, update their description as the problem develops, so a rule follows them with
+no setup. Your own anomaly detectors (custom alerts) need two things:
+
+- **Put the value in the description with the `{severity}` placeholder**, for example
+  `Triggering Value: {severity}`. It holds the metric value that opened the alert and does **not** change if
+  the alert escalates. For a severity that follows an escalation, use one detector per level.
+- **Do not add scalar fields to the detector's query** to get the number into the text, for example
+  `fieldsAdd max_cpu = arrayMax(cpu_usage)`. It works, but a changing value in the query result counts as a new
+  timeseries, so Dynatrace opens a new alert, and with it a new problem, every time the value changes (see
+  the [DQL best practices for custom alerts](https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice)).
+
+The Help page has a step-by-step example, and the rule editor tests your pattern on a real description.
+
 ### What it changes in your tenant
 
 - **One pipeline and one route per profile**, named `Severity Assistant: <profile> ...` so they are

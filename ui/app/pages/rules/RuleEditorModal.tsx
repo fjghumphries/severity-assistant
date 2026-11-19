@@ -318,6 +318,7 @@ export const RuleEditorModal = ({
           <ThresholdEditor
             eventName={matchMode === "event" ? eventName : null}
             detectorId={matchMode === "detector" ? detectorId : null}
+            targetsDetector={matchMode === "detector"}
             onPatternBlock={setPatternBlock}
             patternPresetId={patternPresetId}
             setPatternPresetId={setPatternPresetId}

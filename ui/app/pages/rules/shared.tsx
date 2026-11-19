@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Paragraph,
   Strong,
+  Text,
 } from "@dynatrace/strato-components/typography";
 import { MessageContainer } from "@dynatrace/strato-components/content";
 import { useHref } from "react-router-dom";
@@ -477,6 +478,8 @@ export function ThresholdEditor(props: {
   eventName: string | null;
   /** The rule's detector, if it targets one; where "use the latest event" looks first. */
   detectorId?: string | null;
+  /** True when the rule is keyed on an anomaly detector: shows the setup warning, not just a hint. */
+  targetsDetector?: boolean;
   /** Reports a reason while the pattern is known not to read a number, else null. */
   onPatternBlock?: (reason: string | null) => void;
   patternPresetId: string;
@@ -489,6 +492,7 @@ export function ThresholdEditor(props: {
   const {
     eventName,
     detectorId = null,
+    targetsDetector = false,
     onPatternBlock,
     patternPresetId,
     setPatternPresetId,
@@ -538,23 +542,31 @@ export function ThresholdEditor(props: {
 
   return (
     <Flex flexDirection="column" gap={16}>
-      <MessageContainer variant="warning">
-        <MessageContainer.Title>
-          Using your own anomaly detector? Allow merging first
-        </MessageContainer.Title>
-        <MessageContainer.Description>
-          <Paragraph>
-            Events from a custom anomaly detector (type CUSTOM_ALERT) are not
-            merged into problems by default, so every new value opens a new
-            problem. In the detector&apos;s event template, set{" "}
-            <code>dt.davis.is_merging_allowed</code> to <code>true</code>.
-            Events written by Dynatrace Intelligence itself need nothing.{" "}
-            <ExternalLink href={helpHref}>
-              Read the setup notes (opens in a new tab)
-            </ExternalLink>
-          </Paragraph>
-        </MessageContainer.Description>
-      </MessageContainer>
+      {targetsDetector ? (
+        <MessageContainer variant="warning">
+          <MessageContainer.Title>
+            Custom anomaly detector? Check its setup
+          </MessageContainer.Title>
+          <MessageContainer.Description>
+            <Paragraph>
+              Put the value in the description with the{" "}
+              <code>{"{severity}"}</code> placeholder and keep computed fields
+              out of the query, or every change of the value opens a new
+              problem.{" "}
+              <ExternalLink href={helpHref}>
+                Read the setup notes (opens in a new tab)
+              </ExternalLink>
+            </Paragraph>
+          </MessageContainer.Description>
+        </MessageContainer>
+      ) : (
+        <Text>
+          Events from your own anomaly detector?{" "}
+          <ExternalLink href={helpHref}>
+            Read the setup notes (opens in a new tab)
+          </ExternalLink>
+        </Text>
+      )}
       <Paragraph>
         The severity comes from a{" "}
         <Strong>number inside the event&apos;s description</Strong> (the{" "}

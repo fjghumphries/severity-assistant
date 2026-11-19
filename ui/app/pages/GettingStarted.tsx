@@ -7,6 +7,7 @@ import {
   Paragraph,
   Strong,
   Text,
+  ExternalLink,
 } from "@dynatrace/strato-components/typography";
 import { Button } from "@dynatrace/strato-components/buttons";
 import { TextInput } from "@dynatrace/strato-components/forms";
@@ -104,6 +105,11 @@ const FAQ: Faq[] = [
     topic: "Going live and undoing",
     q: "Can I run this alongside my own event routing?",
     a: "Only if your matcher is narrow. Routing is first-match-wins and this app's route goes first, so a matcher of true takes every event and routes below it stop receiving anything. Give a profile a narrow matcher to scope it to one team or business unit.",
+  },
+  {
+    topic: "Concepts",
+    q: "How do I configure an anomaly detector to use threshold monitoring?",
+    a: 'In the detector\'s event template, put the metric value in the description after a fixed label with the {severity} placeholder, for example "Triggering Value: {severity}", and write a by-value rule with a pattern that reads the number after that label. Do not add computed fields to the query (such as max_cpu = arrayMax(...)) to get the number into the text: Dynatrace treats a changing value in the query result as a new timeseries and opens a new problem every time it changes. The {severity} value is the one that opened the alert and does not change if the alert escalates. Events that Dynatrace Intelligence writes itself, such as the failure rate of a service, update their description, so they work with no setup. The step-by-step example is in the section "Severity from a number" on this page, and the rule editor tests your pattern on a real description.',
   },
   {
     topic: "Concepts",
@@ -375,21 +381,19 @@ const InitialSetup = () => {
 
 /** Worked example for the "severity from a number" Help section (a host CPU detector). */
 const DETECTOR_QUERY = `timeseries cpu_usage = avg(dt.host.cpu.usage),
-  by: { dt.smartscape.host, host.name, primary_tags.bu, primary_tags.tier }
-| fieldsAdd max_cpu_usage = arrayMax(cpu_usage)`;
+  by: { dt.smartscape.host, host.name, primary_tags.bu, primary_tags.tier }`;
 
 const DETECTOR_TEMPLATE = `event.type: CUSTOM_ALERT
 event.name: CPU alert on {host.name}
 event.description: |
   CPU is above the threshold of {threshold}.
-  Triggering Value: {max_cpu_usage}
-dt.davis.is_merging_allowed: true`;
+  Triggering Value: {severity}`;
 
 const DETECTOR_PATTERN = `DATA 'Triggering Value: 'DOUBLE:sa_v`;
 
 const DETECTOR_CHECK = `fetch dt.davis.events, from: -1h
 | filter matchesPhrase(event.name, "CPU alert")
-| fields timestamp, event.description, dt.davis.is_merging_allowed, dt.davis.disable_merging_reason
+| fields timestamp, event.start, event.end, event.description
 | sort timestamp desc
 | limit 10`;
 
@@ -494,28 +498,38 @@ export const GettingStarted = () => {
               <Flex flexDirection="column" gap={16}>
                 <Prose>
                   <Paragraph>
-                    A rule that takes its severity from a number reads that
-                    number from the event description. Events that Dynatrace
-                    Intelligence writes itself (error rate, memory, slowdown and
-                    so on) need nothing more. If the event comes from{" "}
-                    <Strong>your own anomaly detector</Strong>, you have to put
-                    the number into the description yourself, and the detector
-                    needs two things: the number as a single value, and merging
-                    allowed. The example below sets up both for a host CPU
-                    alert.
+                    A rule can read a number from the event description. Events
+                    that Dynatrace Intelligence writes itself, such as the
+                    failure rate of a service, update their description as the
+                    problem develops, so a rule follows them with no setup.
+                    <Strong> Your own anomaly detector</Strong> (a custom alert)
+                    needs a few settings, and one thing to avoid.
                   </Paragraph>
                 </Prose>
 
-                <Heading level={4}>
-                  1. Query: turn the series into one number
-                </Heading>
+                <Heading level={4}>What to avoid</Heading>
                 <Prose>
                   <Paragraph>
-                    A <code>timeseries</code> query returns a list of values per
-                    entity. A placeholder in the event text can only insert one
-                    value, so add a field that reduces the list to one number.
-                    Without it the description shows the placeholder text itself
-                    (for example <code>{"{cpu_usage}"}</code>).
+                    Do not add fields to the detector&apos;s query to get the
+                    number into the text, such as{" "}
+                    <code>fieldsAdd max_cpu = arrayMax(cpu_usage)</code>. It
+                    works, but a changing value in the query result counts as a
+                    new timeseries, so Dynatrace opens a new alert, and with it
+                    a new problem, every time the value changes. On a test
+                    tenant a detector that evaluated every minute opened a
+                    problem per minute. Dynatrace&apos;s{" "}
+                    <ExternalLink href="https://docs.dynatrace.com/docs/dynatrace-intelligence/anomaly-detection/anomaly-detection-app/anomaly-detection-dql-best-practice">
+                      DQL best practices
+                    </ExternalLink>{" "}
+                    for custom alerts say the same: keep dimensions stable.
+                  </Paragraph>
+                </Prose>
+
+                <Heading level={4}>1. Query: keep it plain</Heading>
+                <Prose>
+                  <Paragraph>
+                    Group by the fields your labels use (tier, business unit and
+                    so on) and nothing computed.
                   </Paragraph>
                 </Prose>
                 <CodeSnippet language="dql">{DETECTOR_QUERY}</CodeSnippet>
@@ -524,35 +538,40 @@ export const GettingStarted = () => {
                 <Prose>
                   <Paragraph>
                     Use a static threshold on the series, for example{" "}
-                    <code>ABOVE 90</code>. The threshold only decides when the
-                    detector raises an event at all; the rules in this app
-                    decide its severity from the number.
+                    <code>ABOVE 90</code>. It only decides when the detector
+                    raises an event; the rules in this app decide its severity
+                    from the number.
                   </Paragraph>
                 </Prose>
 
                 <Heading level={4}>
-                  3. Event template: put the number in the description
+                  3. Event template: the {"{severity}"} placeholder
                 </Heading>
                 <Prose>
                   <Paragraph>
-                    In the detector&apos;s event properties, set these. The
-                    number goes after a fixed label, and{" "}
-                    <code>dt.davis.is_merging_allowed</code> lets Davis merge
-                    the events into one problem.
+                    In the detector&apos;s event properties, put the value in
+                    the description after a fixed label, using the{" "}
+                    <code>{"{severity}"}</code> placeholder. It holds the metric
+                    value that opened the alert.
                   </Paragraph>
                 </Prose>
                 <CodeSnippet language="yaml">{DETECTOR_TEMPLATE}</CodeSnippet>
                 <Prose>
                   <Paragraph>
-                    Why merging matters: events of type{" "}
-                    <code>CUSTOM_ALERT</code>, which is what a custom detector
-                    creates, are not merged into existing problems by default;
-                    other event types are. The number changes at every
-                    evaluation, so each evaluation is a new event, and without
-                    merging every one opens its own problem. On a test tenant a
-                    detector that evaluated every minute opened a one-minute
-                    problem per minute. With merging on, the events joined one
-                    problem. The default alerting settings are fine.
+                    <Strong>It does not follow an escalation.</Strong> The text
+                    keeps the value from the moment the alert opened, even if
+                    the metric climbs later, so a rule sees how bad it was at
+                    the start. If you need the severity to follow an escalation
+                    of a custom alert, use one detector per level (a second one
+                    with the higher threshold) and give each its own rule.
+                  </Paragraph>
+                  <Paragraph>
+                    Events of type <code>CUSTOM_ALERT</code> are not merged into
+                    existing problems by default. With one event per alert that
+                    usually does not matter; if you still see several problems
+                    for one condition, add the event property{" "}
+                    <code>dt.davis.is_merging_allowed</code> with the value{" "}
+                    <code>true</code>.
                   </Paragraph>
                 </Prose>
 
@@ -566,27 +585,21 @@ export const GettingStarted = () => {
                 <CodeSnippet language="log">{DETECTOR_PATTERN}</CodeSnippet>
                 <Prose>
                   <Paragraph>
-                    Do not start the pattern at the first number in the text:
-                    descriptions often contain the threshold as well. Then set
-                    the bounds, for example 95, 90 and 80 for Critical, High and
-                    Medium. Per-team thresholds are exceptions with label
-                    conditions on the same rule. &quot;Suggest patterns&quot; in
-                    the editor lists real descriptions from your tenant, which
-                    is the quickest way to see what your detector produces.
+                    Then set the bounds, for example 95, 90 and 80 for Critical,
+                    High and Medium. Per-team thresholds are exceptions with
+                    label conditions on the same rule. The editor tests the
+                    pattern on a real description (&quot;Use the latest
+                    event&quot;) and does not let you save one that reads
+                    nothing.
                   </Paragraph>
                 </Prose>
 
                 <Heading level={4}>5. Check it</Heading>
                 <Prose>
                   <Paragraph>
-                    After the detector has fired, look at its events.{" "}
-                    <code>dt.davis.is_merging_allowed</code> should be true,
-                    <code> dt.davis.disable_merging_reason</code> (&quot;Set by
-                    event reporter&quot; when merging was switched off) should
-                    be empty, and the description should hold a real number. An
-                    event that reaches Grail after its problem has already
-                    closed can still open a new problem, so a very long alert
-                    may show a few.
+                    After the detector has fired, look at its events: there
+                    should be one event per host while the condition lasts, and
+                    the description should hold a real number.
                   </Paragraph>
                 </Prose>
                 <CodeSnippet language="dql">{DETECTOR_CHECK}</CodeSnippet>

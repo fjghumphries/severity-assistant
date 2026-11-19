@@ -3,7 +3,7 @@
   "environmentUrl": "https://your-environment-id.apps.dynatrace.com/",
   "app": {
     "name": "severity-assistant",
-    "version": "0.2.6",
+    "version": "0.2.7",
     "description": "Configure Davis event severity rules based on event name and metadata",
     "id": "my.severity.assistant",
     "icon": "./ui/assets/icon.svg",

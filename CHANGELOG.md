@@ -3,6 +3,11 @@
 Newest first. Release notes with the downloads are on the
 [Releases page](https://github.com/fjghumphries/severity-assistant/releases).
 
+### 0.2.7 (2026-11-19)
+
+**Changed**
+- **Guidance for threshold monitoring with your own anomaly detectors is corrected.** The Help page, the rule editor's warning and the README now recommend the `{severity}` placeholder in the event description and say not to add computed fields (such as `fieldsAdd max_cpu = arrayMax(...)`) to the query, because a changing value in the query result makes Dynatrace open a new alert and problem every time it changes. They also say that the placeholder keeps the value that opened the alert and does not follow an escalation, while events Dynatrace Intelligence writes itself do update. New Help question: "How do I configure an anomaly detector to use threshold monitoring?" The rule editor shows a short warning that links to the setup notes when a by-value rule targets an anomaly detector.
+
 ### 0.2.6 (2026-11-18)
 
 **Added**
